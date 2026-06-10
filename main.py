@@ -8,25 +8,29 @@ def main():
     interface = AtomInterface()
     
     while True:
+        # Limpieza de pantalla al inicio del bucle
         subprocess.run("cls" if os.name == "nt" else "clear", shell=True)
         try:
             interface.show_menu()
             opcion = interface.get_choice()
             
-            # El diccionario ya incluye '3': 'ssh'
             tipos_auditoria = {"1": "system", "2": "file", "3": "ssh"}
             
             if opcion in tipos_auditoria:
-                # La factory instancia el auditor correcto (System, File o SSH)
                 auditor = AuditorFactory.get_auditor(tipos_auditoria[opcion])
                 resultados = auditor.ejecutar()
                 
-                # Verificamos que resultados sea una lista válida
                 if resultados is not None:
                     print(f"\n{'='*15} REPORTE DE SEGURIDAD {'='*15}")
                     for hallazgo in resultados:
                         print(hallazgo)
                     print("=" * 50)
+                    
+                    # NUEVA LOGICA: Guardar reporte
+                    guardar = input("\n[?] ¿Deseas guardar el reporte en un archivo? (s/n): ").lower()
+                    if guardar == 's':
+                        nombre_archivo = auditor.save_report_to_file()
+                        print(f"[+] Reporte guardado exitosamente en: {nombre_archivo}")
                 else:
                     print("\n[!] El auditor no devolvió resultados.")
                     
@@ -42,8 +46,6 @@ def main():
                 input("\nPresiona Enter para continuar...")
 
         except Exception as e:
-            # Esto atrapará errores como 'NotImplementedError' de la Factory 
-            # o fallos en los módulos
             print(f"\n[!] Error inesperado: {e}")
             input("\nPresiona Enter para continuar...")
 
