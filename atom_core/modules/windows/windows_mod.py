@@ -1,6 +1,6 @@
-from atom_core.base_auditor import AtomAuditor
+from atom_core.base_auditor import BaseAuditor
 
-class WindowsAuditor(AtomAuditor):
+class WindowsAuditor(BaseAuditor):
     
     def audit_firewall(self):
         """Verifica si el Firewall de Windows está activo evaluando respuestas en ES/EN."""
@@ -255,7 +255,7 @@ class WindowsAuditor(AtomAuditor):
             
             
 
-    def run_full_audit(self):
+    def ejecutar(self):
         """Ejecuta todos los módulos de auditoría de Windows secuencialmente."""
         print(f"{self.CYAN}[*]{self.RESET} Iniciando auditoría completa de Windows...")
         self.audit_firewall()
