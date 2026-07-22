@@ -44,7 +44,7 @@ class BaseAuditor(ABC):
             )
         )
 
-    def _run_command(self, command):
+    def _run_command(self, command,timeout=10):
         """
         Ejecuta un comando del sistema.
         """
@@ -54,10 +54,14 @@ class BaseAuditor(ABC):
                 command,
                 shell=True,
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=timeout
             )
 
             return result.stdout.strip()
+        
+        except subprocess.TimeoutExpired:
+            return f"Error: El comando '{command}' excedió el tiempo de espera de {timeout} segundos."
 
         except Exception as e:
             return f"Error ejecutando comando: {str(e)}"

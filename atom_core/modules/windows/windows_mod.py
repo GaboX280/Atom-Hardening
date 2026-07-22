@@ -250,11 +250,23 @@ class WindowsAuditor(BaseAuditor):
 
 
         resultado = self._run_command(
-            "manage-bde -status C:"
+            "manage-bde -status C:",
+            timeout=5
         ).upper()
 
 
-        if (
+        if "COMMAND_TIMEOUT" in resultado or "COMMAND_ERROR" in resultado:
+
+            self.add_finding(
+                title="BitLocker",
+                status="WARNING",
+                severity="MEDIUM",
+                details="No fue posible consultar el estado de BitLocker.",
+                recommendation="Ejecutar la auditoría con privilegios de administrador."
+            )
+
+
+        elif (
             "FULLY ENCRYPTED" in resultado
             or
             "COMPLETAMENTE CIFRADO" in resultado
@@ -264,18 +276,34 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="PASS",
                 severity="INFO",
-                details="La unidad C está cifrada.",
+                details="La unidad C está completamente cifrada.",
                 recommendation="Mantener protección BitLocker activa."
             )
 
-        else:
+
+        elif (
+            "FULLY DECRYPTED" in resultado
+            or
+            "COMPLETAMENTE DESCIFRADO" in resultado
+        ):
 
             self.add_finding(
                 title="BitLocker",
                 status="FAIL",
                 severity="HIGH",
-                details="No se detectó cifrado completo.",
+                details="La unidad C no está cifrada.",
                 recommendation="Activar BitLocker en unidades críticas."
+            )
+
+
+        else:
+
+            self.add_finding(
+                title="BitLocker",
+                status="WARNING",
+                severity="MEDIUM",
+                details="No se pudo determinar completamente el estado de cifrado.",
+                recommendation="Revisar manualmente la configuración de BitLocker."
             )
 
     
@@ -283,141 +311,386 @@ class WindowsAuditor(BaseAuditor):
     
     def audit_powershell_policy(self):
         """Audita la directiva de ejecución global de PowerShell."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando directiva de ejecución de PowerShell...")
-        
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando directiva de ejecución de PowerShell..."
+        )
+
         comando = "powershell -Command \"Get-ExecutionPolicy\""
         resultado = self._run_command(comando).strip().upper()
-        
+
         if "BYPASS" in resultado or "UNRESTRICTED" in resultado:
-            self.report.append(f"{self.RED}[-]{self.RESET} Ejecución de PowerShell: {resultado} (Inseguro) {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="PowerShell Execution Policy",
+                status="FAIL",
+                severity="HIGH",
+                details=f"Directiva insegura detectada: {resultado}",
+                recommendation="Configurar una política de ejecución más restrictiva."
+            )
+
         else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Ejecución de PowerShell: {resultado} {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="PowerShell Execution Policy",
+                status="PASS",
+                severity="INFO",
+                details=f"Directiva actual: {resultado}",
+                recommendation="Mantener políticas seguras de ejecución."
+            )
+
 
     def audit_windows_update(self):
-        """Verifica si el servicio de Windows Update está disponible en el sistema."""
-        print(f"{self.CYAN}[*]{self.RESET} Comprobando estado del servicio de Windows Update...")
-        
+        """Verifica si el servicio Windows Update está disponible."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Comprobando estado del servicio Windows Update..."
+        )
+
         comando = "powershell -Command \"(Get-Service wuauserv).Status\""
         resultado = self._run_command(comando).strip().upper()
-        
+
         if "RUNNING" in resultado or "STOPPED" in resultado:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Servicio Windows Update: INSTALADO / DISPONIBLE {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="Windows Update Service",
+                status="PASS",
+                severity="INFO",
+                details=f"Servicio Windows Update disponible. Estado: {resultado}",
+                recommendation="Mantener actualizaciones automáticas habilitadas."
+            )
+
         else:
-            self.report.append(f"{self.RED}[-]{self.RESET} Servicio Windows Update: COMPROMETIDO O INACCESIBLE {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="Windows Update Service",
+                status="FAIL",
+                severity="HIGH",
+                details="No fue posible validar el servicio Windows Update.",
+                recommendation="Verificar disponibilidad y estado del servicio."
+            )
+
     
     
     def audit_admin_account(self):
-        """Verifica si la cuenta nativa de Administrador está deshabilitada."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando estado de la cuenta nativa de Administrador...")
-        
+        """Verifica si la cuenta Administrador nativa está deshabilitada."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando cuenta Administrador nativa..."
+        )
+
         comando = "net user Administrador"
         resultado = self._run_command(comando)
+
         resultado_upper = resultado.upper()
-        
+
+        activa = False
+
         if "CUENTA ACTIVA" in resultado_upper:
-            if "SÍ" in resultado_upper or "YES" in resultado_upper:
-                self.report.append(f"{self.RED}[-]{self.RESET} Cuenta Administrador Nativa: ACTIVA (Se recomienda deshabilitar) {self.RED}[PELIGRO]{self.RESET}")
-            else:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Cuenta Administrador Nativa: DESHABILITADA {self.GREEN}[OK]{self.RESET}")
+
+            activa = (
+                "SÍ" in resultado_upper
+                or
+                "YES" in resultado_upper
+            )
+
         else:
-            # Validación en caso de sistemas en inglés (Administrator)
-            comando_en = "net user Administrator"
-            resultado_en = self._run_command(comando_en).upper()
-            if "ACCOUNT ACTIVE" in resultado_en and "YES" in resultado_en:
-                self.report.append(f"{self.RED}[-]{self.RESET} Cuenta Administrador Nativa: ACTIVA (Se recomienda deshabilitar) {self.RED}[PELIGRO]{self.RESET}")
-            else:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Cuenta Administrador Nativa: DESHABILITADA o No Encontrada {self.GREEN}[OK]{self.RESET}")
+
+            resultado_en = self._run_command(
+                "net user Administrator"
+            ).upper()
+
+            activa = (
+                "ACCOUNT ACTIVE" in resultado_en
+                and
+                "YES" in resultado_en
+            )
+
+
+        if activa:
+
+            self.add_finding(
+                title="Default Administrator Account",
+                status="FAIL",
+                severity="HIGH",
+                details="La cuenta Administrador nativa está habilitada.",
+                recommendation="Deshabilitar la cuenta si no es necesaria."
+            )
+
+        else:
+
+            self.add_finding(
+                title="Default Administrator Account",
+                status="PASS",
+                severity="INFO",
+                details="La cuenta Administrador nativa está deshabilitada o no encontrada.",
+                recommendation="Mantener cuentas privilegiadas controladas."
+            )
+
 
     def audit_smbv1(self):
-        """Verifica si el protocolo inseguro SMBv1 está deshabilitado en el sistema."""
-        print(f"{self.CYAN}[*]{self.RESET} Comprobando configuración del protocolo obsoleto SMBv1...")
-        
-        comando = "powershell -Command \"(Get-SmbServerConfiguration).EnableSMB1Protocol\""
+        """Verifica si SMBv1 está deshabilitado."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Comprobando configuración SMBv1..."
+        )
+
+        comando = (
+            "powershell -Command "
+            "\"(Get-SmbServerConfiguration).EnableSMB1Protocol\""
+        )
+
         resultado = self._run_command(comando).strip().upper()
-        
+
+
         if "TRUE" in resultado:
-            self.report.append(f"{self.RED}[-]{self.RESET} Protocolo SMBv1: HABILITADO (Vulnerable a EternalBlue) {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="SMBv1 Protocol",
+                status="FAIL",
+                severity="CRITICAL",
+                details="SMBv1 está habilitado.",
+                recommendation="Deshabilitar SMBv1 por riesgos conocidos como EternalBlue."
+            )
+
+
         elif "FALSE" in resultado:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Protocolo SMBv1: DESHABILITADO {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="SMBv1 Protocol",
+                status="PASS",
+                severity="INFO",
+                details="SMBv1 está deshabilitado.",
+                recommendation="Mantener protocolos obsoletos deshabilitados."
+            )
+
+
         else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Protocolo SMBv1: No activo o configuración estándar {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="SMBv1 Protocol",
+                status="PASS",
+                severity="INFO",
+                details="SMBv1 no está activo o no pudo detectarse.",
+                recommendation="Mantener configuración segura."
+            )
+
     
     
     
     
     
     def audit_llmnr(self):
-        """Verifica si el protocolo inseguro LLMNR está deshabilitado en el Registro."""
-        print(f"{self.CYAN}[*]{self.RESET} Comprobando mitigación de spoofing (LLMNR)...")
-        
-        # Consultamos la directiva de DNS en el registro
-        comando = 'powershell -Command "Get-ItemProperty -Path \'HKLM:\\Software\\Policies\\Microsoft\\Windows NT\\DNSClient\' -Name \'EnableMulticast\' -ErrorAction SilentlyContinue"'
+        """Verifica si LLMNR está deshabilitado."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Comprobando mitigación LLMNR..."
+        )
+
+
+        comando = (
+            'powershell -Command '
+            '"Get-ItemProperty '
+            "-Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows NT\\DNSClient' "
+            "-Name 'EnableMulticast' "
+            '-ErrorAction SilentlyContinue"'
+        )
+
+
         resultado = self._run_command(comando).upper()
-        
+
+
         if "ENABLEMULTICAST" in resultado:
-            # Si EnableMulticast es 0, LLMNR está apagado (Configuración segura)
-            if " : 0" in resultado or ":0" in resultado:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Mitigación LLMNR: PROTOCOLO DESACTIVADO {self.GREEN}[OK]{self.RESET}")
+
+            if ": 0" in resultado or ":0" in resultado:
+
+                self.add_finding(
+                    title="LLMNR Protocol",
+                    status="PASS",
+                    severity="INFO",
+                    details="LLMNR está deshabilitado.",
+                    recommendation="Mantener mitigaciones contra spoofing activas."
+                )
+
             else:
-                self.report.append(f"{self.RED}[-]{self.RESET} Mitigación LLMNR: PROTOCOLO ACTIVO (Vulnerable a ataques Responder) {self.RED}[PELIGRO]{self.RESET}")
+
+                self.add_finding(
+                    title="LLMNR Protocol",
+                    status="FAIL",
+                    severity="HIGH",
+                    details="LLMNR está habilitado.",
+                    recommendation="Deshabilitar LLMNR para reducir ataques Responder."
+                )
+
         else:
-            # Por defecto en Windows viene activo si la llave no existe
-            self.report.append(f"{self.RED}[-]{self.RESET} Mitigación LLMNR: PROTOCOLO ACTIVO (Configuración por defecto) {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="LLMNR Protocol",
+                status="FAIL",
+                severity="HIGH",
+                details="No existe una directiva explícita. Windows puede mantener LLMNR activo.",
+                recommendation="Crear política para deshabilitar LLMNR."
+            )
+
 
     def audit_anonymous_lookup(self):
-        """Verifica que se restrinja el acceso anónimo a cuentas y recursos (Null Sessions)."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando restricciones de enumeración anónima (Null Sessions)...")
-        
-        comando = 'powershell -Command "Get-ItemProperty -Path \'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa\' -Name \'RestrictNullSessAccess\' -ErrorAction SilentlyContinue"'
+        """Verifica restricciones contra enumeración anónima."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando Null Sessions..."
+        )
+
+
+        comando = (
+            'powershell -Command '
+            '"Get-ItemProperty '
+            "-Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' "
+            "-Name 'RestrictNullSessAccess' "
+            '-ErrorAction SilentlyContinue"'
+        )
+
+
         resultado = self._run_command(comando).upper()
-        
+
+
         if "RESTRICTNULLSESSACCESS" in resultado:
-            if " : 1" in resultado or ":1" in resultado:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Acceso Anónimo (LSA): RESTRICCIONES ACTIVADAS {self.GREEN}[OK]{self.RESET}")
+
+            if ": 1" in resultado or ":1" in resultado:
+
+                self.add_finding(
+                    title="Anonymous Access Restrictions",
+                    status="PASS",
+                    severity="INFO",
+                    details="Restricciones contra acceso anónimo activadas.",
+                    recommendation="Mantener restricciones LSA."
+                )
+
             else:
-                self.report.append(f"{self.RED}[-]{self.RESET} Acceso Anónimo (LSA): PERMISIVO (Se recomienda restringir) {self.RED}[PELIGRO]{self.RESET}")
+
+                self.add_finding(
+                    title="Anonymous Access Restrictions",
+                    status="FAIL",
+                    severity="HIGH",
+                    details="Las sesiones nulas pueden estar permitidas.",
+                    recommendation="Restringir acceso anónimo."
+                )
+
         else:
-            self.report.append(f"{self.RED}[-]{self.RESET} Acceso Anónimo (LSA): Sin directiva explícita de restricción {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="Anonymous Access Restrictions",
+                status="FAIL",
+                severity="HIGH",
+                details="No se encontró configuración explícita.",
+                recommendation="Configurar RestrictNullSessAccess."
+            )
     
     
     
     def audit_risky_services(self):
-        """Detecta si servicios vulnerables comunes están en ejecución."""
-        print(f"{self.CYAN}[*]{self.RESET} Auditando servicios con superficie de ataque...")
-        risky_services = ["Spooler", "RemoteRegistry", "SSDPSRV"]
-        
-        for service in risky_services:
-            comando = f'powershell -Command "(Get-Service {service} -ErrorAction SilentlyContinue).Status"'
-            resultado = self._run_command(comando).strip().upper()
-            
-            if "RUNNING" in resultado:
-                self.report.append(f"{self.RED}[-]{self.RESET} Servicio riesgoso detectado ({service}): EN EJECUCIÓN {self.RED}[PELIGRO]{self.RESET}")
-            else:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Servicio {service}: NO EN EJECUCIÓN {self.GREEN}[OK]{self.RESET}")
+        """Detecta servicios con superficie de ataque elevada."""
 
+        print(
+            f"{self.CYAN}[*]{self.RESET} Auditando servicios riesgosos..."
+        )
+
+        risky_services = [
+            "Spooler",
+            "RemoteRegistry",
+            "SSDPSRV"
+        ]
+
+
+        for service in risky_services:
+
+            comando = (
+                f'powershell -Command '
+                f'"(Get-Service {service} '
+                '-ErrorAction SilentlyContinue).Status"'
+            )
+
+
+            resultado = self._run_command(comando).strip().upper()
+
+
+            if "RUNNING" in resultado:
+
+                self.add_finding(
+                    title=f"Risky Service: {service}",
+                    status="FAIL",
+                    severity="MEDIUM",
+                    details=f"El servicio {service} está en ejecución.",
+                    recommendation="Deshabilitar servicios innecesarios."
+                )
+
+            else:
+
+                self.add_finding(
+                    title=f"Risky Service: {service}",
+                    status="PASS",
+                    severity="INFO",
+                    details=f"El servicio {service} no está activo.",
+                    recommendation="Mantener servicios mínimos."
+                )
+                
+                
     def audit_doh_settings(self):
-        """Verifica si el sistema tiene activado DNS over HTTPS (DoH)."""
-        print(f"{self.CYAN}[*]{self.RESET} Verificando configuración de DNS Seguro (DoH)...")
-        
-        comando = 'powershell -Command "Get-ItemProperty -Path \'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters\' -Name \'EnableAutoDoh\' -ErrorAction SilentlyContinue"'
+        """Verifica DNS over HTTPS."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Verificando DNS over HTTPS..."
+        )
+
+
+        comando = (
+            'powershell -Command '
+            '"Get-ItemProperty '
+            "-Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters' "
+            "-Name 'EnableAutoDoh' "
+            '-ErrorAction SilentlyContinue"'
+        )
+
+
         resultado = self._run_command(comando)
-        
-        if "ENABLEAUTODOH" in resultado.upper() and ": 2" in resultado:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} DNS over HTTPS (DoH): ACTIVADO {self.GREEN}[OK]{self.RESET}")
+
+
+        if (
+            "ENABLEAUTODOH" in resultado.upper()
+            and
+            ": 2" in resultado
+        ):
+
+            self.add_finding(
+                title="DNS over HTTPS",
+                status="PASS",
+                severity="INFO",
+                details="DNS over HTTPS está habilitado.",
+                recommendation="Mantener DNS seguro cuando sea compatible."
+            )
+
         else:
-            self.report.append(f"{self.YELLOW}[-]{self.RESET} DNS over HTTPS (DoH): DESACTIVADO o No configurado {self.YELLOW}[AVISO]{self.RESET}")
-    
+
+            self.add_finding(
+                title="DNS over HTTPS",
+                status="WARNING",
+                severity="LOW",
+                details="DNS over HTTPS no está habilitado o configurado.",
+                recommendation="Evaluar habilitar DoH según políticas corporativas."
+            )
+
     
     
             
             
 
     def ejecutar(self):
+        """
+        Ejecuta todos los módulos de auditoría de Windows.
+        """
 
         print(
             f"{self.CYAN}[*]{self.RESET} Iniciando auditoría completa de Windows..."
         )
-
 
         self.audit_firewall()
         self.audit_windows_defender()
@@ -426,5 +699,18 @@ class WindowsAuditor(BaseAuditor):
         self.audit_remote_desktop()
         self.audit_uac()
         self.audit_bitlocker()
+        self.audit_powershell_policy()
+        self.audit_windows_update()
+        self.audit_admin_account()
+        self.audit_smbv1()
+        self.audit_llmnr()
+        self.audit_anonymous_lookup()
+        self.audit_risky_services()
+        self.audit_doh_settings()
 
         return self.report
+    
+print(
+    "ejecutar pertenece a:",
+    WindowsAuditor.ejecutar.__qualname__
+)
