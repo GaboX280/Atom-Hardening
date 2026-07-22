@@ -1,106 +1,456 @@
 from atom_core.base_auditor import BaseAuditor
 
+
 class LinuxAuditor(BaseAuditor):
+
     def __init__(self):
         super().__init__()
+        self.distro = self.detect_distro()
 
-    def ejecutar(self):
-        print(f"\n{self.CYAN}[*]{self.RESET} Iniciando auditoría de sistema Linux...")
-        
-        self._check_firewall()
-        self._check_services()
-        self._check_root_accounts()
-        self._binary_SUID_check()
-        self._config_directory_permissions()
-        self._check_unnecessary_services()
-        self._check_world_writable_files()
-        self._check_password_policy()
 
-        return self.report
+    def detect_distro(self):
 
-    def _check_firewall(self):
-        # Verifica si UFW (Uncomplicated Firewall) está activo en el sistema.
-        resultado = self._run_command("sudo ufw status")
-        if "active" in resultado:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Firewall UFW: ACTIVADO {self.GREEN}[OK]{self.RESET}")
-        else:
-            self.report.append(f"{self.RED}[-]{self.RESET} Firewall UFW: DESACTIVADO {self.RED}[PELIGRO]{self.RESET}")
+        resultado = self._run_command(
+            "cat /etc/os-release"
+        ).lower()
 
-    def _check_services(self):
-        # Este método revisa servicios comunes que deberían estar activos en un sistema seguro, como 'cron', 'ssh', etc.
-        resultado = self._run_command("systemctl is-active cron")
-        if "active" in resultado:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Servicio Cron: ACTIVO {self.GREEN}[OK]{self.RESET}")
-        else:
-            self.report.append(f"{self.YELLOW}[!]{self.RESET} Servicio Cron: INACTIVO {self.YELLOW}[ADVERTENCIA]{self.RESET}")
-            
-    def _check_root_accounts(self):
-        # Este comando busca usuarios con UID 0, lo cual es un riesgo si hay cuentas no autorizadas con privilegios de root.
-        usuarios = self._run_command("awk -F: '($3 == \"0\") {print $1}' /etc/passwd").strip()
-        if usuarios:
-            self.report.append(f"{self.RED}[-]{self.RESET} Usuarios con privilegios Root: {usuarios} {self.RED}[PELIGRO]{self.RESET}")
-        else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} No hay usuarios root sospechosos {self.GREEN}[OK]{self.RESET}")
-            
-    def _binary_SUID_check(self):
-        # Este comando busca archivos con el bit SUID activo, lo cual puede ser un riesgo si no se gestionan adecuadamente.
-        resultado = self._run_command("find / -perm -4000 -type f 2>/dev/null")
-        if resultado:
-            self.report.append(f"{self.RED}[-]{self.RESET} Binarios SUID encontrados: {len(resultado.splitlines())} {self.RED}[PELIGRO]{self.RESET}")
-        else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} No se detectaron binarios SUID {self.GREEN}[OK]{self.RESET}")
-            
-    def _config_directory_permissions(self):
-        # Este comando busca directorios en /etc que sean escribibles por cualquiera, lo cual es un riesgo de seguridad.
-        resultado = self._run_command("find /etc -type d -perm -002 -ls 2>/dev/null")
-        if resultado:
-            directorios = resultado.splitlines()
-            self.report.append(f"{self.RED}[-]{self.RESET} Directorios en /etc/ con permisos inseguros: {len(directorios)} {self.RED}[PELIGRO]{self.RESET}")
-            for linea in directorios:
-                ruta = linea.split()[-1]
-                self.report.append(f"   {self.YELLOW}[!]{self.RESET} Riesgo en: {ruta}")
-        else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Permisos en directorios /etc/: SEGURO {self.GREEN}[OK]{self.RESET}")
-            
-    def _check_unnecessary_services(self):
-        # Este método revisa servicios comunes que no deberían estar activos en un sistema seguro.
-        # aquí podrías añadir una lista de servicios comunes que no deberían estar activos en un sistema seguro, como 'avahi-daemon', 'cups', 'rpcbind', etc.
-        services = ["avahi-daemon", "cups", "rpcbind"]
-        for svc in services:
-            status = self._run_command(f"systemctl is-active {svc} 2>/dev/null").strip()
-            if status == "active":
-                self.report.append(f"{self.YELLOW}[!]{self.RESET} Servicio innecesario: {svc} {self.YELLOW}[ADVERTENCIA]{self.RESET}")
+
+        if "ubuntu" in resultado:
+            return "ubuntu"
+
+        if "debian" in resultado:
+            return "debian"
+
+        if "fedora" in resultado:
+            return "fedora"
+
+        if "rhel" in resultado or "red hat" in resultado:
+            return "rhel"
+
+        if "arch" in resultado:
+            return "arch"
+
+
+        return "unknown"
+    
+    
+    
+    def _command_exists(self, command):
+
+        resultado = self._run_command(
+            f"command -v {command}"
+        )
+
+        return resultado != ""
+    
+    def audit_firewall(self):
+
+            self.log(
+                "Evaluando firewall Linux..."
+            )
+
+
+            if self._command_exists("ufw"):
+
+                resultado = self._run_command(
+                    "ufw status"
+                )
+
+
+                if "active" in resultado.lower():
+
+                    self.add_finding(
+                        title="Linux Firewall UFW",
+                        status="PASS",
+                        severity="INFO",
+                        details="UFW está activo.",
+                        recommendation="Mantener reglas actualizadas."
+                    )
+
+                else:
+
+                    self.add_finding(
+                        title="Linux Firewall UFW",
+                        status="FAIL",
+                        severity="HIGH",
+                        details="UFW está deshabilitado.",
+                        recommendation="Activar firewall."
+                    )
+
+
+            elif self._command_exists("firewall-cmd"):
+
+                resultado = self._run_command(
+                    "firewall-cmd --state"
+                )
+
+
+                if "running" in resultado:
+
+                    self.add_finding(
+                        title="Firewalld",
+                        status="PASS",
+                        severity="INFO",
+                        details="Firewalld activo.",
+                        recommendation="Mantener configuración."
+                    )
+
+
+            else:
+
+                resultado = self._run_command(
+                    "iptables -L"
+                )
+
+
+                if resultado:
+
+                    self.add_finding(
+                        title="iptables",
+                        status="WARNING",
+                        severity="MEDIUM",
+                        details="Firewall detectado mediante iptables.",
+                        recommendation="Revisar reglas."
+                    )
+                    
+                    
+    def audit_services(self):
+
+        servicios = [
+            "cron",
+            "crond",
+            "sshd"
+        ]
+
+
+        for servicio in servicios:
+
+            estado = self._run_command(
+                f"systemctl is-active {servicio}"
+            )
+
+
+            if estado.strip()=="active":
+
+                self.add_finding(
+                    title=f"Service {servicio}",
+                    status="PASS",
+                    severity="INFO",
+                    details="Servicio activo.",
+                    recommendation="Mantener monitoreo."
+                )
                 
-    def _check_world_writable_files(self):
-        # Este comando busca archivos en /home que sean escribibles por cualquiera, lo cual es un riesgo de seguridad.
-        resultado = self._run_command("find /home -type f -perm -0002 2>/dev/null")
-        if resultado:
-            self.report.append(f"{self.RED}[-]{self.RESET} Archivos escribibles por cualquiera en /home: {len(resultado.splitlines())} {self.RED}[PELIGRO]{self.RESET}")
+    def audit_failed_logins(self):
+
+        logs=[
+            "/var/log/auth.log",
+            "/var/log/secure"
+        ]
+
+
+        encontrado=False
+
+
+        for log in logs:
+
+            resultado=self._run_command(
+                f"grep 'Failed password' {log} 2>/dev/null"
+            )
+
+            if resultado:
+                encontrado=True
+
+
+        if encontrado:
+
+            self.add_finding(
+                title="Failed SSH Logins",
+                status="WARNING",
+                severity="MEDIUM",
+                details="Intentos fallidos encontrados.",
+                recommendation="Revisar accesos SSH."
+            )
+
         else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Permisos en /home: SEGURO {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="Failed SSH Logins",
+                status="PASS",
+                severity="INFO",
+                details="No se encontraron intentos fallidos.",
+                recommendation="Mantener monitoreo."
+            )
             
-    def _check_password_policy(self):
-        # Verifica la política de expiración de contraseñas
-        dias = self._run_command("grep '^PASS_MAX_DAYS' /etc/login.defs | awk '{print $2}'").strip()
-        if dias and int(dias) > 90:
-            self.report.append(f"{self.YELLOW}[!]{self.RESET} Política contraseñas: PASS_MAX_DAYS es {dias} (se recomienda <= 90) {self.YELLOW}[ADVERTENCIA]{self.RESET}")
-        else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Política de contraseñas: OK ({dias} días) {self.GREEN}[OK]{self.RESET}")
             
-    def _check_open_ports(self):
-        # Escanea puertos en escucha
-        resultado = self._run_command("ss -tulpn | grep LISTEN")
-        if resultado:
-            self.report.append(f"{self.CYAN}[i]{self.RESET} Servicios escuchando en red (Revisar si son necesarios):")
-            for linea in resultado.splitlines():
-                self.report.append(f"   {self.CYAN}->{self.RESET} {linea.strip()}")
+    def audit_root_accounts(self):
+
+        self.log(
+            "Evaluando cuentas con UID 0..."
+        )
+
+
+        usuarios = self._run_command(
+            "awk -F: '($3 == 0) {print $1}' /etc/passwd"
+        )
+
+
+        cuentas = usuarios.splitlines()
+
+
+        if len(cuentas) > 1:
+
+            self.add_finding(
+                title="Multiple Root Accounts",
+                status="FAIL",
+                severity="HIGH",
+                details=(
+                    f"Se detectaron cuentas privilegiadas: {', '.join(cuentas)}"
+                ),
+                recommendation=(
+                    "Mantener únicamente cuentas root necesarias."
+                )
+            )
+
         else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} No se detectaron servicios escuchando externamente {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="Root Account Security",
+                status="PASS",
+                severity="INFO",
+                details=(
+                    "Solo existe la cuenta root."
+                ),
+                recommendation=(
+                    "Mantener control de privilegios."
+                )
+            )
             
-    def _check_failed_logins(self):
-        # Busca intentos fallidos en /var/log/auth.log
-        resultado = self._run_command("grep 'Failed password' /var/log/auth.log | tail -n 5 2>/dev/null")
+    def audit_suid(self):
+
+        self.log(
+            "Buscando binarios SUID..."
+        )
+
+
+        resultado = self._run_command(
+            "find / -perm -4000 -type f 2>/dev/null"
+        )
+
+
         if resultado:
-            self.report.append(f"{self.RED}[-]{self.RESET} Intentos de login fallidos recientes detectados en auth.log!")
+
+            cantidad = len(
+                resultado.splitlines()
+            )
+
+
+            self.add_finding(
+                title="SUID Binaries",
+                status="WARNING",
+                severity="MEDIUM",
+                details=(
+                    f"Se encontraron {cantidad} binarios SUID."
+                ),
+                recommendation=(
+                    "Revisar binarios SUID innecesarios."
+                )
+            )
+
+
         else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} No se detectaron intentos de login fallidos recientes {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="SUID Binaries",
+                status="PASS",
+                severity="INFO",
+                details=(
+                    "No se detectaron binarios SUID."
+                ),
+                recommendation=(
+                    "Mantener revisión periódica."
+                )
+            )
+            
+    def audit_permissions(self):
+
+        self.log(
+            "Evaluando permisos críticos..."
+        )
+
+
+        archivos=[
+
+            "/etc/passwd",
+            "/etc/shadow",
+            "/etc/sudoers"
+
+        ]
+
+
+        for archivo in archivos:
+
+
+            permisos = self._run_command(
+                f"stat -c '%a' {archivo}"
+            ).strip()
+
+
+            if "ERROR" in permisos.upper():
+
+                self.add_finding(
+                    title=f"Permissions {archivo}",
+                    status="ERROR",
+                    severity="HIGH",
+                    details=permisos,
+                    recommendation="Verificar permisos."
+                )
+
+                continue
+
+
+
+            if permisos[-1] in [
+                "2",
+                "3",
+                "6",
+                "7"
+            ]:
+
+
+                self.add_finding(
+                    title=f"Permissions {archivo}",
+                    status="FAIL",
+                    severity="HIGH",
+                    details=(
+                        f"Permisos inseguros detectados: {permisos}"
+                    ),
+                    recommendation=(
+                        "Eliminar permisos de escritura pública."
+                    )
+                )
+
+
+            else:
+
+                self.add_finding(
+                    title=f"Permissions {archivo}",
+                    status="PASS",
+                    severity="INFO",
+                    details=(
+                        f"Permisos seguros: {permisos}"
+                    ),
+                    recommendation=(
+                        "Mantener permisos mínimos."
+                    )
+                )
+                
+    def audit_password_policy(self):
+
+        self.log(
+            "Evaluando política de contraseñas..."
+        )
+
+
+        resultado = self._run_command(
+            "grep PASS_MAX_DAYS /etc/login.defs"
+        )
+
+
+        dias = None
+
+
+        for linea in resultado.splitlines():
+
+            if "PASS_MAX_DAYS" in linea:
+
+                partes=linea.split()
+
+                if len(partes)>=2:
+                    dias=int(partes[1])
+
+
+        if dias and dias <= 90:
+
+            self.add_finding(
+                title="Password Expiration Policy",
+                status="PASS",
+                severity="INFO",
+                details=f"Caducidad máxima: {dias} días.",
+                recommendation="Mantener política."
+            )
+
+
+        else:
+
+            self.add_finding(
+                title="Password Expiration Policy",
+                status="WARNING",
+                severity="MEDIUM",
+                details=f"Valor encontrado: {dias}",
+                recommendation="Configurar <= 90 días."
+            )
+            
+    def audit_network(self):
+
+        self.log(
+            "Evaluando servicios escuchando..."
+        )
+
+
+        resultado = self._run_command(
+            "ss -tulpn"
+        )
+
+
+        if resultado:
+
+            lineas=len(
+                resultado.splitlines()
+            )
+
+
+            self.add_finding(
+                title="Listening Network Services",
+                status="WARNING",
+                severity="MEDIUM",
+                details=(
+                    f"Servicios escuchando detectados: {lineas}"
+                ),
+                recommendation=(
+                    "Revisar puertos expuestos."
+                )
+            )
+
+        else:
+
+            self.add_finding(
+                title="Listening Network Services",
+                status="PASS",
+                severity="INFO",
+                details="No se detectaron servicios.",
+                recommendation="Mantener monitoreo."
+            )
+                
+            
+    def ejecutar(self):
+
+        self.log(
+            f"Iniciando auditoría Linux ({self.distro})..."
+        )
+
+
+        checks=[
+
+            self.audit_firewall,
+            self.audit_services,
+            self.audit_root_accounts,
+            self.audit_suid,
+            self.audit_permissions,
+            self.audit_password_policy,
+            self.audit_failed_logins,
+            self.audit_network
+
+        ]
+
+
+        return self.run_checks(checks)

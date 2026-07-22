@@ -2,18 +2,25 @@ import subprocess
 import platform
 import datetime
 import os
+from typing import Optional
+
 from abc import ABC, abstractmethod
 
 from atom_core.models.finding import Finding
 
 
+
 class BaseAuditor(ABC):
+
 
     def __init__(self):
 
         self.report: list[Finding] = []
 
         self.os_type = platform.system()
+
+        self.module_name = self.__class__.__name__
+
 
         self.GREEN = "\033[92m"
         self.RED = "\033[91m"
@@ -22,24 +29,45 @@ class BaseAuditor(ABC):
         self.RESET = "\033[0m"
 
 
+
     def add_finding(
         self,
         title: str,
         status: str,
         severity: str,
         details: str = "",
-        recommendation: str = ""
+        recommendation: str = "",
+        category: str = "General",
+        module: Optional[str] = None
     ):
 
+
         self.report.append(
+
             Finding(
+
                 title=title,
+
                 status=status,
+
                 severity=severity,
+
                 details=details,
-                recommendation=recommendation
+
+                recommendation=recommendation,
+
+                category=category,
+
+                module=(
+                    module
+                    if module
+                    else self.module_name
+                )
+
             )
+
         )
+
 
 
     def clear_report(self):
@@ -54,21 +82,32 @@ class BaseAuditor(ABC):
         level="INFO"
     ):
 
+
         prefix = {
 
-            "INFO": self.CYAN + "[*]",
 
-            "OK": self.GREEN + "[+]",
+            "INFO":
+                self.CYAN + "[*]",
 
-            "WARN": self.YELLOW + "[!]",
 
-            "ERROR": self.RED + "[-]"
+            "OK":
+                self.GREEN + "[+]",
+
+
+            "WARN":
+                self.YELLOW + "[!]",
+
+
+            "ERROR":
+                self.RED + "[-]"
+
 
         }
 
 
         print(
-            f"{prefix.get(level, '[*]')}{self.RESET} {message}"
+            f"{prefix.get(level,self.CYAN+'[*]')}"
+            f"{self.RESET} {message}"
         )
 
 
@@ -78,24 +117,20 @@ class BaseAuditor(ABC):
         command,
         timeout=10
     ):
-        """
-        Ejecuta comandos del sistema de forma segura.
-        Maneja timeouts, procesos colgados y errores.
-        """
 
         try:
 
-            creation_flags = 0
+
+            flags = 0
 
 
             if self.os_type == "Windows":
 
-                creation_flags = (
-                    subprocess.CREATE_NO_WINDOW
-                )
+                flags = subprocess.CREATE_NO_WINDOW
 
 
-            proceso = subprocess.Popen(
+
+            process = subprocess.Popen(
 
                 command,
 
@@ -107,14 +142,16 @@ class BaseAuditor(ABC):
 
                 text=True,
 
-                creationflags=creation_flags
+                creationflags=flags
 
             )
 
 
+
             try:
 
-                stdout, stderr = proceso.communicate(
+
+                stdout, stderr = process.communicate(
                     timeout=timeout
                 )
 
@@ -122,15 +159,12 @@ class BaseAuditor(ABC):
             except subprocess.TimeoutExpired:
 
 
-                proceso.kill()
+                process.kill()
+
+                process.communicate()
 
 
-                stdout, stderr = proceso.communicate()
-
-
-                return (
-                    "ERROR: COMMAND_TIMEOUT"
-                )
+                return "ERROR: COMMAND_TIMEOUT"
 
 
 
@@ -140,45 +174,34 @@ class BaseAuditor(ABC):
 
 
 
-            if proceso.returncode != 0:
-
-                if stderr:
-
-                    return (
-                        f"ERROR: {stderr}"
-                    )
+            if process.returncode != 0:
 
 
                 return (
-                    f"ERROR: COMMAND_FAILED ({proceso.returncode})"
+                    f"ERROR: {stderr}"
+                    if stderr
+                    else
+                    f"ERROR: COMMAND_FAILED ({process.returncode})"
                 )
+
 
 
             return stdout
 
 
 
-        except FileNotFoundError:
-
-            return (
-                "ERROR: COMMAND_NOT_FOUND"
-            )
-
-
-
         except PermissionError:
 
-            return (
-                "ERROR: ACCESS_DENIED"
-            )
+
+            return "ERROR: ACCESS_DENIED"
 
 
 
         except Exception as e:
 
-            return (
-                f"ERROR: {str(e)}"
-            )
+
+            return f"ERROR: {str(e)}"
+
 
 
 
@@ -187,10 +210,6 @@ class BaseAuditor(ABC):
         checks
     ):
 
-        """
-        Ejecuta todos los módulos de auditoría.
-        Un fallo individual no detiene todo el análisis.
-        """
 
         self.clear_report()
 
@@ -218,11 +237,12 @@ class BaseAuditor(ABC):
                     details=str(e),
 
                     recommendation=(
-                        "Revisar el módulo afectado."
-                    )
+                        "Revisar módulo afectado."
+                    ),
+
+                    category="Internal Error"
 
                 )
-
 
 
         return self.report
@@ -236,15 +256,14 @@ class BaseAuditor(ABC):
         home = os.path.expanduser("~")
 
 
-        escritorio = os.path.join(
-            home,
-            "Desktop"
-        )
-
-
         carpeta = os.path.join(
-            escritorio,
+
+            home,
+
+            "Desktop",
+
             "Atom Logs"
+
         )
 
 
@@ -260,6 +279,7 @@ class BaseAuditor(ABC):
         )
 
 
+
         archivo = os.path.join(
 
             carpeta,
@@ -271,50 +291,48 @@ class BaseAuditor(ABC):
 
 
         with open(
+
             archivo,
+
             "w",
+
             encoding="utf-8"
+
         ) as f:
 
 
 
             f.write(
-                "===== REPORTE ATOM =====\n\n"
+                "========== ATOM SECURITY REPORT ==========\n\n"
             )
 
 
             f.write(
-                f"Sistema: {self.os_type}\n"
+                f"System: {self.os_type}\n"
             )
 
 
             f.write(
-                f"Fecha: {datetime.datetime.now()}\n\n"
+                f"Module: {self.module_name}\n"
             )
+
+
+            f.write(
+                f"Date: {datetime.datetime.now()}\n\n"
+            )
+
 
 
             for finding in self.report:
 
 
                 f.write(
-                    f"[{finding.status}] "
-                    f"{finding.title}\n"
+                    str(finding)
                 )
 
 
                 f.write(
-                    f"Severidad: {finding.severity}\n"
-                )
-
-
-                f.write(
-                    f"Detalles: {finding.details}\n"
-                )
-
-
-                f.write(
-                    f"Recomendación: "
-                    f"{finding.recommendation}\n\n"
+                    "\n\n"
                 )
 
 
