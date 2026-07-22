@@ -7,6 +7,7 @@ from typing import Optional
 from abc import ABC, abstractmethod
 
 from atom_core.models.finding import Finding
+from atom_core.core.security_score import SecurityScore
 
 
 
@@ -52,11 +53,17 @@ class BaseAuditor(ABC):
             Finding(
 
                 title=title,
+
                 status=status,
+
                 severity=severity,
+
                 details=details,
+
                 recommendation=recommendation,
+
                 category=category,
+
                 module=(
                     module
                     if module
@@ -82,39 +89,8 @@ class BaseAuditor(ABC):
 
     def calculate_security_score(self):
 
-        score = 100
-
-
-        penalties = {
-
-            "CRITICAL": 25,
-            "HIGH": 15,
-            "MEDIUM": 8,
-            "LOW": 3,
-            "INFO": 0
-
-        }
-
-
-        for finding in self.report:
-
-
-            if finding.status in [
-                "FAIL",
-                "WARNING",
-                "ERROR"
-            ]:
-
-
-                score -= penalties.get(
-                    finding.severity.upper(),
-                    5
-                )
-
-
-        return max(
-            0,
-            score
+        return SecurityScore.calculate(
+            self.report
         )
 
 
@@ -124,21 +100,9 @@ class BaseAuditor(ABC):
         score
     ):
 
-
-        if score >= 90:
-            return "EXCELLENT"
-
-
-        if score >= 75:
-            return "GOOD"
-
-
-        if score >= 50:
-            return "MODERATE"
-
-
-        return "CRITICAL"
-
+        return SecurityScore.rating(
+            score
+        )
 
 
 
@@ -146,12 +110,13 @@ class BaseAuditor(ABC):
 
         score = self.calculate_security_score()
 
-        rating = self.get_score_rating(score)
+        rating = self.get_score_rating(
+            score
+        )
 
 
         print(
-            "\n"
-            "=" * 45
+            "\n" + "=" * 45
         )
 
         print(
@@ -165,6 +130,27 @@ class BaseAuditor(ABC):
         print(
             "=" * 45
         )
+
+
+
+    def get_security_summary(self):
+
+        score = self.calculate_security_score()
+
+
+        return {
+
+            "system": self.os_type,
+
+            "module": self.module_name,
+
+            "score": score,
+
+            "rating": self.get_score_rating(score),
+
+            "findings": len(self.report)
+
+        }
 
 
 
@@ -252,8 +238,8 @@ class BaseAuditor(ABC):
             )
 
 
-            try:
 
+            try:
 
                 stdout, stderr = process.communicate(
                     timeout=timeout
@@ -321,11 +307,14 @@ class BaseAuditor(ABC):
 
     def run_checks(
         self,
-        checks: list
+        checks: list,
+        clear: bool = True
     ):
 
 
-        self.clear_report()
+        if clear:
+
+            self.clear_report()
 
 
 
@@ -418,6 +407,8 @@ class BaseAuditor(ABC):
 
         score = self.calculate_security_score()
 
+        rating = self.get_score_rating(score)
+
 
 
         with open(
@@ -462,7 +453,14 @@ class BaseAuditor(ABC):
 
             file.write(
 
-                f"SECURITY SCORE: {score}/100\n\n"
+                f"SECURITY SCORE: {score}/100\n"
+
+            )
+
+
+            file.write(
+
+                f"RATING: {rating}\n\n"
 
             )
 
@@ -487,6 +485,7 @@ class BaseAuditor(ABC):
 
 
         return filename
+
 
 
 
