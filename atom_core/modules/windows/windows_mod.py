@@ -3,124 +3,281 @@ from atom_core.base_auditor import BaseAuditor
 class WindowsAuditor(BaseAuditor):
     
     def audit_firewall(self):
-        """Verifica si el Firewall de Windows está activo evaluando respuestas en ES/EN."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando el estado del Firewall de Windows...")
-        
+        """Verifica el estado del Firewall de Windows."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando el estado del Firewall de Windows..."
+        )
+
         comando = "netsh advfirewall show allprofiles state"
         resultado = self._run_command(comando)
 
-        resultado_upper = resultado.upper()
-        
-        if "ON" in resultado_upper or "ACTIVAR" in resultado_upper:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Firewall de Windows: ACTIVO {self.GREEN}[OK]{self.RESET}")
+        if "ON" in resultado.upper() or "ACTIVAR" in resultado.upper():
+
+            self.add_finding(
+                title="Windows Firewall",
+                status="PASS",
+                severity="INFO",
+                details="El Firewall de Windows está activo.",
+                recommendation="Mantener las reglas del firewall actualizadas."
+            )
+
         else:
-            self.report.append(f"{self.RED}[-]{self.RESET} Firewall de Windows: DESACTIVADO {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="Windows Firewall",
+                status="FAIL",
+                severity="HIGH",
+                details="El Firewall de Windows parece estar desactivado.",
+                recommendation="Activar Windows Firewall en todos los perfiles."
+            )
+
         
     def audit_windows_defender(self):
-        """Verifica si windows defender esta activo o no"""
-        print(f"{self.CYAN}[*]{self.RESET} Comprobando protección en tiempo real de Windows Defender...")
-        
-        comando = "powershell -Command \"(Get-MpComputerStatus).RealTimeProtectionEnabled\""
+        """Verifica protección en tiempo real de Windows Defender."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Comprobando protección de Windows Defender..."
+        )
+
+        comando = (
+            "powershell -Command "
+            "\"(Get-MpComputerStatus).RealTimeProtectionEnabled\""
+        )
+
         resultado = self._run_command(comando)
-        
+
         if "TRUE" in resultado.upper():
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Windows Defender: ACTIVO {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="Windows Defender",
+                status="PASS",
+                severity="INFO",
+                details="La protección en tiempo real está activa.",
+                recommendation="Mantener las firmas antivirus actualizadas."
+            )
+
         else:
-            self.report.append(f"{self.RED}[-]{self.RESET} Windows Defender: DESACTIVADO {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="Windows Defender",
+                status="FAIL",
+                severity="HIGH",
+                details="La protección en tiempo real está deshabilitada.",
+                recommendation="Activar la protección en tiempo real."
+            )
+
             
     def audit_password_policy(self):
-        """Audita la longitud mínima requerida para las contraseñas locales."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando la política de contraseñas de Windows...")
-        comando = "net accounts"
-        resultado = self._run_command(comando)
-        
+        """Audita la política mínima de contraseñas."""
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando política de contraseñas..."
+        )
+
+        resultado = self._run_command(
+            "net accounts"
+        )
+
         longitud_minima = 0
+
         for linea in resultado.splitlines():
-            if "LONGITUD MÍNIMA DE CONTRASEÑA" in linea.upper() or "MINIMUM PASSWORD LENGTH" in linea.upper():
-                num = [int(s) for s in linea.split() if s.isdigit()]
-                if num:
-                    longitud_minima = num[0]
+
+            if (
+                "LONGITUD MÍNIMA" in linea.upper()
+                or "MINIMUM PASSWORD LENGTH" in linea.upper()
+            ):
+
+                numeros = [
+                    int(x)
+                    for x in linea.split()
+                    if x.isdigit()
+                ]
+
+                if numeros:
+                    longitud_minima = numeros[0]
                     break
 
+
         if longitud_minima >= 8:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Política de contraseñas: LONGITUD MÍNIMA ADECUADA {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="Password Policy",
+                status="PASS",
+                severity="INFO",
+                details=f"Longitud mínima configurada: {longitud_minima}",
+                recommendation="Mantener políticas robustas de contraseña."
+            )
+
         else:
-            self.report.append(f"{self.RED}[-]{self.RESET} Política de contraseñas: LONGITUD MÍNIMA INSUFICIENTE {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="Password Policy",
+                status="FAIL",
+                severity="MEDIUM",
+                details=f"Longitud mínima encontrada: {longitud_minima}",
+                recommendation="Configurar mínimo de 8 caracteres."
+            )
+
             
     def audit_guest_account(self):
-        """Verifica si la cuenta nativa de Invitado (Guest) está deshabilitada."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando estado de la cuenta de Invitado...")
-        
-        comando = "net user Invitado"
-        resultado = self._run_command(comando)
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando cuenta Invitado..."
+        )
+
+        resultado = self._run_command(
+            "net user Invitado"
+        )
+
         resultado_upper = resultado.upper()
-        
-        if "CUENTA ACTIVA" in resultado_upper:
-            if "SÍ" in resultado_upper or "YES" in resultado_upper:
-                self.report.append(f"{self.RED}[-]{self.RESET} Cuenta de Invitado: ACTIVA (Se recomienda deshabilitar) {self.RED}[PELIGRO]{self.RESET}")
-            else:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Cuenta de Invitado: DESHABILITADA {self.GREEN}[OK]{self.RESET}")
+
+        activa = (
+            ("CUENTA ACTIVA" in resultado_upper and "SÍ" in resultado_upper)
+            or
+            ("ACCOUNT ACTIVE" in resultado_upper and "YES" in resultado_upper)
+        )
+
+
+        if activa:
+
+            self.add_finding(
+                title="Guest Account",
+                status="FAIL",
+                severity="MEDIUM",
+                details="La cuenta Invitado está habilitada.",
+                recommendation="Deshabilitar cuentas de invitado innecesarias."
+            )
+
         else:
-            if "ACCOUNT ACTIVE" in resultado_upper and "YES" in resultado_upper:
-                self.report.append(f"{self.RED}[-]{self.RESET} Cuenta de Invitado: ACTIVA (Se recomienda deshabilitar) {self.RED}[PELIGRO]{self.RESET}")
-            else:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Cuenta de Invitado: DESHABILITADA o No Encontrada {self.GREEN}[OK]{self.RESET}")     
+
+            self.add_finding(
+                title="Guest Account",
+                status="PASS",
+                severity="INFO",
+                details="La cuenta Invitado está deshabilitada.",
+                recommendation="Mantener cuentas innecesarias desactivadas."
+            )
+    
                 
     def audit_remote_desktop(self):
-        """Verifica si el servicio de Escritorio Remoto (RDP) está habilitado en el Registro."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando estado del Escritorio Remoto (RDP)...")
-        
-        comando = 'powershell -Command "Get-ItemProperty -Path \'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server\' -Name \'fDenyTSConnections\'"'
-        resultado = self._run_command(comando)
-        resultado_upper = resultado.upper()
-        
-        if "FDENYTSCONNECTIONS" in resultado_upper:
-            if " : 1" in resultado_upper or ":1" in resultado_upper:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Escritorio Remoto (RDP): DESHABILITADO {self.GREEN}[OK]{self.RESET}")
-            elif " : 0" in resultado_upper or ":0" in resultado_upper:
-                self.report.append(f"{self.RED}[-]{self.RESET} Escritorio Remoto (RDP): HABILITADO (Se recomienda apagar si no se usa) {self.RED}[PELIGRO]{self.RESET}")
-            else:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Escritorio Remoto (RDP): Protegido o No Accesible {self.GREEN}[OK]{self.RESET}")
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando Escritorio Remoto..."
+        )
+
+
+        comando = (
+            'powershell -Command '
+            '"Get-ItemProperty '
+            "-Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' "
+            "-Name 'fDenyTSConnections'"
+            '"'
+        )
+
+
+        resultado = self._run_command(comando).upper()
+
+
+        if ": 0" in resultado or ":0" in resultado:
+
+            self.add_finding(
+                title="Remote Desktop (RDP)",
+                status="WARNING",
+                severity="MEDIUM",
+                details="Escritorio Remoto está habilitado.",
+                recommendation="Deshabilitar RDP si no es requerido."
+            )
+
+
         else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Escritorio Remoto (RDP): Configuración estándar {self.GREEN}[OK]{self.RESET}")
+
+            self.add_finding(
+                title="Remote Desktop (RDP)",
+                status="PASS",
+                severity="INFO",
+                details="Escritorio Remoto está deshabilitado.",
+                recommendation="Mantener acceso remoto restringido."
+            )
+
             
             
     def audit_uac(self):
-        """Verifica el nivel de comportamiento de las solicitudes de elevación de UAC."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando la configuración del Control de Cuentas de Usuario (UAC)...")
-        
-        comando = 'powershell -Command "Get-ItemProperty -Path \'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System\' -Name \'ConsentPromptBehaviorAdmin\'"'
-        resultado = self._run_command(comando)
-        resultado_upper = resultado.upper()
-        
-        if "CONSENTPROMPTBEHAVIORADMIN" in resultado_upper:
-            # Si el valor es 0, significa que está configurado en 'No notificar nunca' (Altamente Inseguro)
-            if " : 0" in resultado_upper or ":0" in resultado_upper:
-                self.report.append(f"{self.RED}[-]{self.RESET} Control de Cuentas (UAC): DESACTIVADO o Nivel Mínimo {self.RED}[PELIGRO]{self.RESET}")
-            else:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Control de Cuentas (UAC): CONFIGURACIÓN SEGURA {self.GREEN}[OK]{self.RESET}")
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando configuración UAC..."
+        )
+
+
+        comando = (
+            'powershell -Command '
+            '"Get-ItemProperty '
+            "-Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' "
+            "-Name 'ConsentPromptBehaviorAdmin'"
+            '"'
+        )
+
+
+        resultado = self._run_command(comando).upper()
+
+
+        if ": 0" in resultado or ":0" in resultado:
+
+            self.add_finding(
+                title="User Account Control (UAC)",
+                status="FAIL",
+                severity="HIGH",
+                details="UAC configurado en nivel inseguro.",
+                recommendation="Habilitar solicitudes de elevación."
+            )
+
         else:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Control de Cuentas (UAC): Configuración estándar {self.GREEN}[OK]{self.RESET}")    
+
+            self.add_finding(
+                title="User Account Control (UAC)",
+                status="PASS",
+                severity="INFO",
+                details="Configuración UAC segura.",
+                recommendation="Mantener configuración recomendada."
+            )    
             
             
     def audit_bitlocker(self):
-        """Verifica el estado de cifrado de BitLocker en la unidad principal C:."""
-        print(f"{self.CYAN}[*]{self.RESET} Evaluando estado de cifrado de BitLocker en C:...")
-        
-        comando = "manage-bde -status C:"
-        resultado = self._run_command(comando)
-        resultado_upper = resultado.upper()
-        
-        if "COMPLETAMENTE CIFRADO" in resultado_upper or "FULLY ENCRYPTED" in resultado_upper:
-            self.report.append(f"{self.GREEN}[+]{self.RESET} Cifrado de Disco (BitLocker): COMPLETAMENTE CIFRADO {self.GREEN}[OK]{self.RESET}")
-        elif "COMPLETAMENTE DESCIFRADO" in resultado_upper or "FULLY DECRYPTED" in resultado_upper:
-            self.report.append(f"{self.RED}[-]{self.RESET} Cifrado de Disco (BitLocker): DESACTIVADO {self.RED}[PELIGRO]{self.RESET}")
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Evaluando BitLocker..."
+        )
+
+
+        resultado = self._run_command(
+            "manage-bde -status C:"
+        ).upper()
+
+
+        if (
+            "FULLY ENCRYPTED" in resultado
+            or
+            "COMPLETAMENTE CIFRADO" in resultado
+        ):
+
+            self.add_finding(
+                title="BitLocker",
+                status="PASS",
+                severity="INFO",
+                details="La unidad C está cifrada.",
+                recommendation="Mantener protección BitLocker activa."
+            )
+
         else:
-            # Captura estados intermedios como 'Cifrado en curso' o restricciones de permisos locales
-            if "PROTECCIÓN ACTIVADA" in resultado_upper or "PROTECTION ON" in resultado_upper:
-                self.report.append(f"{self.GREEN}[+]{self.RESET} Cifrado de Disco (BitLocker): PROTEGIDO {self.GREEN}[OK]{self.RESET}")
-            else:
-                self.report.append(f"{self.RED}[-]{self.RESET} Cifrado de Disco (BitLocker): ESTADO INDETERMINADO u OFF {self.RED}[PELIGRO]{self.RESET}")
+
+            self.add_finding(
+                title="BitLocker",
+                status="FAIL",
+                severity="HIGH",
+                details="No se detectó cifrado completo.",
+                recommendation="Activar BitLocker en unidades críticas."
+            )
+
     
     
     
@@ -256,21 +413,18 @@ class WindowsAuditor(BaseAuditor):
             
 
     def ejecutar(self):
-        """Ejecuta todos los módulos de auditoría de Windows secuencialmente."""
-        print(f"{self.CYAN}[*]{self.RESET} Iniciando auditoría completa de Windows...")
+
+        print(
+            f"{self.CYAN}[*]{self.RESET} Iniciando auditoría completa de Windows..."
+        )
+
+
         self.audit_firewall()
         self.audit_windows_defender()
         self.audit_password_policy()
         self.audit_guest_account()
-        self.audit_remote_desktop()  
+        self.audit_remote_desktop()
         self.audit_uac()
         self.audit_bitlocker()
-        self.audit_powershell_policy()
-        self.audit_windows_update()
-        self.audit_admin_account()
-        self.audit_smbv1()
-        self.audit_llmnr()
-        self.audit_anonymous_lookup()
-        self.audit_risky_services()
-        self.audit_doh_settings()
+
         return self.report
