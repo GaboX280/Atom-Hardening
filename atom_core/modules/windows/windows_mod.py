@@ -1,26 +1,37 @@
 from atom_core.base_auditor import BaseAuditor
 
+
 class WindowsAuditor(BaseAuditor):
-    
+
+
     def audit_firewall(self):
         """Verifica el estado del Firewall de Windows."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando el estado del Firewall de Windows..."
+        self.log(
+            "Evaluando el estado del Firewall de Windows..."
         )
 
         comando = "netsh advfirewall show allprofiles state"
+
         resultado = self._run_command(comando)
 
-        if "ON" in resultado.upper() or "ACTIVAR" in resultado.upper():
+
+        if (
+            "ON" in resultado.upper()
+            or
+            "ACTIVAR" in resultado.upper()
+        ):
 
             self.add_finding(
                 title="Windows Firewall",
                 status="PASS",
                 severity="INFO",
                 details="El Firewall de Windows está activo.",
-                recommendation="Mantener las reglas del firewall actualizadas."
+                recommendation=(
+                    "Mantener las reglas del firewall actualizadas."
+                )
             )
+
 
         else:
 
@@ -28,24 +39,32 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Firewall",
                 status="FAIL",
                 severity="HIGH",
-                details="El Firewall de Windows parece estar desactivado.",
-                recommendation="Activar Windows Firewall en todos los perfiles."
+                details=(
+                    "El Firewall de Windows parece estar desactivado."
+                ),
+                recommendation=(
+                    "Activar Windows Firewall en todos los perfiles."
+                )
             )
 
-        
+
+
     def audit_windows_defender(self):
         """Verifica protección en tiempo real de Windows Defender."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Comprobando protección de Windows Defender..."
+        self.log(
+            "Comprobando protección de Windows Defender..."
         )
+
 
         comando = (
             "powershell -Command "
             "\"(Get-MpComputerStatus).RealTimeProtectionEnabled\""
         )
 
+
         resultado = self._run_command(comando)
+
 
         if "TRUE" in resultado.upper():
 
@@ -53,9 +72,14 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Defender",
                 status="PASS",
                 severity="INFO",
-                details="La protección en tiempo real está activa.",
-                recommendation="Mantener las firmas antivirus actualizadas."
+                details=(
+                    "La protección en tiempo real está activa."
+                ),
+                recommendation=(
+                    "Mantener las firmas antivirus actualizadas."
+                )
             )
+
 
         else:
 
@@ -63,29 +87,38 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Defender",
                 status="FAIL",
                 severity="HIGH",
-                details="La protección en tiempo real está deshabilitada.",
-                recommendation="Activar la protección en tiempo real."
+                details=(
+                    "La protección en tiempo real está deshabilitada."
+                ),
+                recommendation=(
+                    "Activar la protección en tiempo real."
+                )
             )
 
-            
+
+
     def audit_password_policy(self):
         """Audita la política mínima de contraseñas."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando política de contraseñas..."
+        self.log(
+            "Evaluando política de contraseñas..."
         )
+
 
         resultado = self._run_command(
             "net accounts"
         )
 
+
         longitud_minima = 0
+
 
         for linea in resultado.splitlines():
 
             if (
                 "LONGITUD MÍNIMA" in linea.upper()
-                or "MINIMUM PASSWORD LENGTH" in linea.upper()
+                or
+                "MINIMUM PASSWORD LENGTH" in linea.upper()
             ):
 
                 numeros = [
@@ -94,9 +127,12 @@ class WindowsAuditor(BaseAuditor):
                     if x.isdigit()
                 ]
 
+
                 if numeros:
+
                     longitud_minima = numeros[0]
                     break
+
 
 
         if longitud_minima >= 8:
@@ -105,9 +141,14 @@ class WindowsAuditor(BaseAuditor):
                 title="Password Policy",
                 status="PASS",
                 severity="INFO",
-                details=f"Longitud mínima configurada: {longitud_minima}",
-                recommendation="Mantener políticas robustas de contraseña."
+                details=(
+                    f"Longitud mínima configurada: {longitud_minima}"
+                ),
+                recommendation=(
+                    "Mantener políticas robustas de contraseña."
+                )
             )
+
 
         else:
 
@@ -115,27 +156,43 @@ class WindowsAuditor(BaseAuditor):
                 title="Password Policy",
                 status="FAIL",
                 severity="MEDIUM",
-                details=f"Longitud mínima encontrada: {longitud_minima}",
-                recommendation="Configurar mínimo de 8 caracteres."
+                details=(
+                    f"Longitud mínima encontrada: {longitud_minima}"
+                ),
+                recommendation=(
+                    "Configurar mínimo de 8 caracteres."
+                )
             )
 
-            
+
+
     def audit_guest_account(self):
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando cuenta Invitado..."
+        self.log(
+            "Evaluando cuenta Invitado..."
         )
+
 
         resultado = self._run_command(
             "net user Invitado"
         )
 
+
         resultado_upper = resultado.upper()
 
+
         activa = (
-            ("CUENTA ACTIVA" in resultado_upper and "SÍ" in resultado_upper)
+            (
+                "CUENTA ACTIVA" in resultado_upper
+                and
+                "SÍ" in resultado_upper
+            )
             or
-            ("ACCOUNT ACTIVE" in resultado_upper and "YES" in resultado_upper)
+            (
+                "ACCOUNT ACTIVE" in resultado_upper
+                and
+                "YES" in resultado_upper
+            )
         )
 
 
@@ -145,9 +202,14 @@ class WindowsAuditor(BaseAuditor):
                 title="Guest Account",
                 status="FAIL",
                 severity="MEDIUM",
-                details="La cuenta Invitado está habilitada.",
-                recommendation="Deshabilitar cuentas de invitado innecesarias."
+                details=(
+                    "La cuenta Invitado está habilitada."
+                ),
+                recommendation=(
+                    "Deshabilitar cuentas de invitado innecesarias."
+                )
             )
+
 
         else:
 
@@ -155,15 +217,19 @@ class WindowsAuditor(BaseAuditor):
                 title="Guest Account",
                 status="PASS",
                 severity="INFO",
-                details="La cuenta Invitado está deshabilitada.",
-                recommendation="Mantener cuentas innecesarias desactivadas."
+                details=(
+                    "La cuenta Invitado está deshabilitada."
+                ),
+                recommendation=(
+                    "Mantener cuentas innecesarias desactivadas."
+                )
             )
-    
-                
+
+
     def audit_remote_desktop(self):
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando Escritorio Remoto..."
+        self.log(
+            "Evaluando Escritorio Remoto..."
         )
 
 
@@ -178,34 +244,31 @@ class WindowsAuditor(BaseAuditor):
 
         resultado = self._run_command(comando).upper()
 
-
         if ": 0" in resultado or ":0" in resultado:
-
             self.add_finding(
                 title="Remote Desktop (RDP)",
                 status="WARNING",
                 severity="MEDIUM",
                 details="Escritorio Remoto está habilitado.",
-                recommendation="Deshabilitar RDP si no es requerido."
+                recommendation=(
+                    "Deshabilitar RDP si no es requerido."
+                )
             )
-
-
         else:
-
             self.add_finding(
                 title="Remote Desktop (RDP)",
                 status="PASS",
                 severity="INFO",
                 details="Escritorio Remoto está deshabilitado.",
-                recommendation="Mantener acceso remoto restringido."
+                recommendation=(
+                    "Mantener acceso remoto restringido."
+                )
             )
 
-            
-            
     def audit_uac(self):
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando configuración UAC..."
+        self.log(
+            "Evaluando configuración UAC..."
         )
 
 
@@ -227,9 +290,14 @@ class WindowsAuditor(BaseAuditor):
                 title="User Account Control (UAC)",
                 status="FAIL",
                 severity="HIGH",
-                details="UAC configurado en nivel inseguro.",
-                recommendation="Habilitar solicitudes de elevación."
+                details=(
+                    "UAC configurado en nivel inseguro."
+                ),
+                recommendation=(
+                    "Habilitar solicitudes de elevación."
+                )
             )
+
 
         else:
 
@@ -237,15 +305,20 @@ class WindowsAuditor(BaseAuditor):
                 title="User Account Control (UAC)",
                 status="PASS",
                 severity="INFO",
-                details="Configuración UAC segura.",
-                recommendation="Mantener configuración recomendada."
-            )    
-            
-            
+                details=(
+                    "Configuración UAC segura."
+                ),
+                recommendation=(
+                    "Mantener configuración recomendada."
+                )
+            )
+
+
+
     def audit_bitlocker(self):
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando BitLocker..."
+        self.log(
+            "Evaluando BitLocker..."
         )
 
 
@@ -255,14 +328,23 @@ class WindowsAuditor(BaseAuditor):
         ).upper()
 
 
-        if "COMMAND_TIMEOUT" in resultado or "COMMAND_ERROR" in resultado:
+
+        if (
+            "TIMEOUT" in resultado
+            or
+            "ERROR" in resultado
+        ):
 
             self.add_finding(
                 title="BitLocker",
                 status="WARNING",
                 severity="MEDIUM",
-                details="No fue posible consultar el estado de BitLocker.",
-                recommendation="Ejecutar la auditoría con privilegios de administrador."
+                details=(
+                    "No fue posible consultar el estado de BitLocker."
+                ),
+                recommendation=(
+                    "Ejecutar la auditoría con privilegios de administrador."
+                )
             )
 
 
@@ -276,8 +358,12 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="PASS",
                 severity="INFO",
-                details="La unidad C está completamente cifrada.",
-                recommendation="Mantener protección BitLocker activa."
+                details=(
+                    "La unidad C está completamente cifrada."
+                ),
+                recommendation=(
+                    "Mantener protección BitLocker activa."
+                )
             )
 
 
@@ -291,8 +377,12 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="FAIL",
                 severity="HIGH",
-                details="La unidad C no está cifrada.",
-                recommendation="Activar BitLocker en unidades críticas."
+                details=(
+                    "La unidad C no está cifrada."
+                ),
+                recommendation=(
+                    "Activar BitLocker en unidades críticas."
+                )
             )
 
 
@@ -302,32 +392,54 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="WARNING",
                 severity="MEDIUM",
-                details="No se pudo determinar completamente el estado de cifrado.",
-                recommendation="Revisar manualmente la configuración de BitLocker."
+                details=(
+                    "No se pudo determinar completamente el estado de cifrado."
+                ),
+                recommendation=(
+                    "Ejecutar Atom como administrador para obtener información completa de cifrado.."
+                )
             )
 
-    
-    
-    
-    def audit_powershell_policy(self):
-        """Audita la directiva de ejecución global de PowerShell."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando directiva de ejecución de PowerShell..."
+
+    def audit_powershell_policy(self):
+
+        self.log(
+            "Evaluando directiva de ejecución de PowerShell..."
         )
 
-        comando = "powershell -Command \"Get-ExecutionPolicy\""
-        resultado = self._run_command(comando).strip().upper()
 
-        if "BYPASS" in resultado or "UNRESTRICTED" in resultado:
+        comando = (
+            "powershell -Command "
+            "\"Get-ExecutionPolicy\""
+        )
+
+
+        resultado = (
+            self._run_command(comando)
+            .strip()
+            .upper()
+        )
+
+
+        if (
+            "BYPASS" in resultado
+            or
+            "UNRESTRICTED" in resultado
+        ):
 
             self.add_finding(
                 title="PowerShell Execution Policy",
                 status="FAIL",
                 severity="HIGH",
-                details=f"Directiva insegura detectada: {resultado}",
-                recommendation="Configurar una política de ejecución más restrictiva."
+                details=(
+                    f"Directiva insegura detectada: {resultado}"
+                ),
+                recommendation=(
+                    "Configurar una política de ejecución más restrictiva."
+                )
             )
+
 
         else:
 
@@ -335,30 +447,66 @@ class WindowsAuditor(BaseAuditor):
                 title="PowerShell Execution Policy",
                 status="PASS",
                 severity="INFO",
-                details=f"Directiva actual: {resultado}",
-                recommendation="Mantener políticas seguras de ejecución."
+                details=(
+                    f"Directiva actual: {resultado}"
+                ),
+                recommendation=(
+                    "Mantener políticas seguras de ejecución."
+                )
             )
+
 
 
     def audit_windows_update(self):
-        """Verifica si el servicio Windows Update está disponible."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Comprobando estado del servicio Windows Update..."
+        self.log(
+            "Comprobando estado del servicio Windows Update..."
         )
 
-        comando = "powershell -Command \"(Get-Service wuauserv).Status\""
-        resultado = self._run_command(comando).strip().upper()
 
-        if "RUNNING" in resultado or "STOPPED" in resultado:
+        comando = (
+            "powershell -Command "
+            "\"(Get-Service wuauserv).Status\""
+        )
+
+
+        resultado = (
+            self._run_command(comando)
+            .strip()
+            .upper()
+        )
+
+
+        if "RUNNING" in resultado:
 
             self.add_finding(
                 title="Windows Update Service",
                 status="PASS",
                 severity="INFO",
-                details=f"Servicio Windows Update disponible. Estado: {resultado}",
-                recommendation="Mantener actualizaciones automáticas habilitadas."
+                details=(
+                    "El servicio Windows Update está ejecutándose."
+                ),
+                recommendation=(
+                    "Mantener actualizaciones automáticas habilitadas."
+                )
             )
+
+
+        elif "STOPPED" in resultado:
+
+            self.add_finding(
+                title="Windows Update Service",
+                status="WARNING",
+                severity="MEDIUM",
+                details=(
+                    "El servicio Windows Update está detenido."
+                ),
+                recommendation=(
+                    "Verificar si la detención es intencional y habilitar "
+                    "actualizaciones automáticas."
+                )
+            )
+
 
         else:
 
@@ -366,25 +514,33 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Update Service",
                 status="FAIL",
                 severity="HIGH",
-                details="No fue posible validar el servicio Windows Update.",
-                recommendation="Verificar disponibilidad y estado del servicio."
+                details=(
+                    "No fue posible determinar el estado del servicio Windows Update."
+                ),
+                recommendation=(
+                    "Verificar que el servicio wuauserv exista y sea accesible."
+                )
             )
 
-    
-    
-    def audit_admin_account(self):
-        """Verifica si la cuenta Administrador nativa está deshabilitada."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando cuenta Administrador nativa..."
+
+    def audit_admin_account(self):
+
+        self.log(
+            "Evaluando cuenta Administrador nativa..."
         )
 
-        comando = "net user Administrador"
-        resultado = self._run_command(comando)
+
+        resultado = self._run_command(
+            "net user Administrador"
+        )
+
 
         resultado_upper = resultado.upper()
 
+
         activa = False
+
 
         if "CUENTA ACTIVA" in resultado_upper:
 
@@ -394,11 +550,13 @@ class WindowsAuditor(BaseAuditor):
                 "YES" in resultado_upper
             )
 
+
         else:
 
             resultado_en = self._run_command(
                 "net user Administrator"
             ).upper()
+
 
             activa = (
                 "ACCOUNT ACTIVE" in resultado_en
@@ -407,15 +565,21 @@ class WindowsAuditor(BaseAuditor):
             )
 
 
+
         if activa:
 
             self.add_finding(
                 title="Default Administrator Account",
                 status="FAIL",
                 severity="HIGH",
-                details="La cuenta Administrador nativa está habilitada.",
-                recommendation="Deshabilitar la cuenta si no es necesaria."
+                details=(
+                    "La cuenta Administrador nativa está habilitada."
+                ),
+                recommendation=(
+                    "Deshabilitar la cuenta si no es necesaria."
+                )
             )
+
 
         else:
 
@@ -423,24 +587,34 @@ class WindowsAuditor(BaseAuditor):
                 title="Default Administrator Account",
                 status="PASS",
                 severity="INFO",
-                details="La cuenta Administrador nativa está deshabilitada o no encontrada.",
-                recommendation="Mantener cuentas privilegiadas controladas."
+                details=(
+                    "La cuenta Administrador nativa está deshabilitada o no encontrada."
+                ),
+                recommendation=(
+                    "Mantener cuentas privilegiadas controladas."
+                )
             )
 
 
-    def audit_smbv1(self):
-        """Verifica si SMBv1 está deshabilitado."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Comprobando configuración SMBv1..."
+    def audit_smbv1(self):
+
+        self.log(
+            "Comprobando configuración SMBv1..."
         )
+
 
         comando = (
             "powershell -Command "
             "\"(Get-SmbServerConfiguration).EnableSMB1Protocol\""
         )
 
-        resultado = self._run_command(comando).strip().upper()
+
+        resultado = (
+            self._run_command(comando)
+            .strip()
+            .upper()
+        )
 
 
         if "TRUE" in resultado:
@@ -449,8 +623,12 @@ class WindowsAuditor(BaseAuditor):
                 title="SMBv1 Protocol",
                 status="FAIL",
                 severity="CRITICAL",
-                details="SMBv1 está habilitado.",
-                recommendation="Deshabilitar SMBv1 por riesgos conocidos como EternalBlue."
+                details=(
+                    "SMBv1 está habilitado."
+                ),
+                recommendation=(
+                    "Deshabilitar SMBv1 por riesgos conocidos."
+                )
             )
 
 
@@ -460,8 +638,12 @@ class WindowsAuditor(BaseAuditor):
                 title="SMBv1 Protocol",
                 status="PASS",
                 severity="INFO",
-                details="SMBv1 está deshabilitado.",
-                recommendation="Mantener protocolos obsoletos deshabilitados."
+                details=(
+                    "SMBv1 está deshabilitado."
+                ),
+                recommendation=(
+                    "Mantener protocolos obsoletos deshabilitados."
+                )
             )
 
 
@@ -471,8 +653,12 @@ class WindowsAuditor(BaseAuditor):
                 title="SMBv1 Protocol",
                 status="PASS",
                 severity="INFO",
-                details="SMBv1 no está activo o no pudo detectarse.",
-                recommendation="Mantener configuración segura."
+                details=(
+                    "SMBv1 no está activo o no pudo detectarse."
+                ),
+                recommendation=(
+                    "Mantener configuración segura."
+                )
             )
 
     
@@ -483,10 +669,9 @@ class WindowsAuditor(BaseAuditor):
     def audit_llmnr(self):
         """Verifica si LLMNR está deshabilitado."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Comprobando mitigación LLMNR..."
+        self.log(
+            "Comprobando mitigación LLMNR..."
         )
-
 
         comando = (
             'powershell -Command '
@@ -495,7 +680,6 @@ class WindowsAuditor(BaseAuditor):
             "-Name 'EnableMulticast' "
             '-ErrorAction SilentlyContinue"'
         )
-
 
         resultado = self._run_command(comando).upper()
 
@@ -509,7 +693,9 @@ class WindowsAuditor(BaseAuditor):
                     status="PASS",
                     severity="INFO",
                     details="LLMNR está deshabilitado.",
-                    recommendation="Mantener mitigaciones contra spoofing activas."
+                    recommendation=(
+                        "Mantener mitigaciones contra spoofing activas."
+                    )
                 )
 
             else:
@@ -519,25 +705,32 @@ class WindowsAuditor(BaseAuditor):
                     status="FAIL",
                     severity="HIGH",
                     details="LLMNR está habilitado.",
-                    recommendation="Deshabilitar LLMNR para reducir ataques Responder."
+                    recommendation=(
+                        "Deshabilitar LLMNR para reducir ataques Responder."
+                    )
                 )
 
         else:
 
             self.add_finding(
                 title="LLMNR Protocol",
-                status="FAIL",
-                severity="HIGH",
-                details="No existe una directiva explícita. Windows puede mantener LLMNR activo.",
-                recommendation="Crear política para deshabilitar LLMNR."
+                status="WARNING",
+                severity="MEDIUM",
+                details=(
+                    "No existe una política explícita para LLMNR."
+                ),
+                recommendation=(
+                    "Crear política para deshabilitar LLMNR."
+                )
             )
+
 
 
     def audit_anonymous_lookup(self):
         """Verifica restricciones contra enumeración anónima."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Evaluando Null Sessions..."
+        self.log(
+            "Evaluando Null Sessions..."
         )
 
 
@@ -561,8 +754,12 @@ class WindowsAuditor(BaseAuditor):
                     title="Anonymous Access Restrictions",
                     status="PASS",
                     severity="INFO",
-                    details="Restricciones contra acceso anónimo activadas.",
-                    recommendation="Mantener restricciones LSA."
+                    details=(
+                        "Restricciones contra acceso anónimo activadas."
+                    ),
+                    recommendation=(
+                        "Mantener restricciones LSA."
+                    )
                 )
 
             else:
@@ -571,37 +768,46 @@ class WindowsAuditor(BaseAuditor):
                     title="Anonymous Access Restrictions",
                     status="FAIL",
                     severity="HIGH",
-                    details="Las sesiones nulas pueden estar permitidas.",
-                    recommendation="Restringir acceso anónimo."
+                    details=(
+                        "Las sesiones nulas pueden estar permitidas."
+                    ),
+                    recommendation=(
+                        "Restringir acceso anónimo."
+                    )
                 )
 
         else:
 
             self.add_finding(
                 title="Anonymous Access Restrictions",
-                status="FAIL",
-                severity="HIGH",
-                details="No se encontró configuración explícita.",
-                recommendation="Configurar RestrictNullSessAccess."
+                status="WARNING",
+                severity="MEDIUM",
+                details=(
+                    "No se encontró configuración explícita."
+                ),
+                recommendation=(
+                    "Configurar RestrictNullSessAccess."
+                )
             )
-    
-    
-    
+
+
+
     def audit_risky_services(self):
         """Detecta servicios con superficie de ataque elevada."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Auditando servicios riesgosos..."
+        self.log(
+            "Auditando servicios riesgosos..."
         )
 
-        risky_services = [
-            "Spooler",
-            "RemoteRegistry",
-            "SSDPSRV"
-        ]
+
+        risky_services = {
+            "Spooler": "Print Spooler",
+            "RemoteRegistry": "Remote Registry",
+            "SSDPSRV": "SSDP Discovery"
+        }
 
 
-        for service in risky_services:
+        for service, description in risky_services.items():
 
             comando = (
                 f'powershell -Command '
@@ -610,35 +816,49 @@ class WindowsAuditor(BaseAuditor):
             )
 
 
-            resultado = self._run_command(comando).strip().upper()
+            resultado = (
+                self._run_command(comando)
+                .strip()
+                .upper()
+            )
 
 
             if "RUNNING" in resultado:
 
                 self.add_finding(
-                    title=f"Risky Service: {service}",
+                    title=f"Risky Service: {description}",
                     status="FAIL",
                     severity="MEDIUM",
-                    details=f"El servicio {service} está en ejecución.",
-                    recommendation="Deshabilitar servicios innecesarios."
+                    details=(
+                        f"El servicio {description} está ejecutándose."
+                    ),
+                    recommendation=(
+                        "Deshabilitar servicios innecesarios."
+                    )
                 )
+
 
             else:
 
                 self.add_finding(
-                    title=f"Risky Service: {service}",
+                    title=f"Risky Service: {description}",
                     status="PASS",
                     severity="INFO",
-                    details=f"El servicio {service} no está activo.",
-                    recommendation="Mantener servicios mínimos."
+                    details=(
+                        f"El servicio {description} no está activo."
+                    ),
+                    recommendation=(
+                        "Mantener servicios mínimos."
+                    )
                 )
-                
-                
+
+
+
     def audit_doh_settings(self):
         """Verifica DNS over HTTPS."""
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Verificando DNS over HTTPS..."
+        self.log(
+            "Verificando DNS over HTTPS..."
         )
 
 
@@ -651,11 +871,11 @@ class WindowsAuditor(BaseAuditor):
         )
 
 
-        resultado = self._run_command(comando)
+        resultado = self._run_command(comando).upper()
 
 
         if (
-            "ENABLEAUTODOH" in resultado.upper()
+            "ENABLEAUTODOH" in resultado
             and
             ": 2" in resultado
         ):
@@ -664,8 +884,12 @@ class WindowsAuditor(BaseAuditor):
                 title="DNS over HTTPS",
                 status="PASS",
                 severity="INFO",
-                details="DNS over HTTPS está habilitado.",
-                recommendation="Mantener DNS seguro cuando sea compatible."
+                details=(
+                    "DNS over HTTPS está habilitado."
+                ),
+                recommendation=(
+                    "Mantener DNS seguro cuando sea compatible."
+                )
             )
 
         else:
@@ -674,43 +898,59 @@ class WindowsAuditor(BaseAuditor):
                 title="DNS over HTTPS",
                 status="WARNING",
                 severity="LOW",
-                details="DNS over HTTPS no está habilitado o configurado.",
-                recommendation="Evaluar habilitar DoH según políticas corporativas."
+                details=(
+                    "DNS over HTTPS no está habilitado o configurado."
+                ),
+                recommendation=(
+                    "Evaluar habilitar DoH según políticas corporativas."
+                )
             )
 
-    
-    
-            
-            
+
 
     def ejecutar(self):
         """
         Ejecuta todos los módulos de auditoría de Windows.
         """
 
-        print(
-            f"{self.CYAN}[*]{self.RESET} Iniciando auditoría completa de Windows..."
+        self.log(
+            "Iniciando auditoría completa de Windows..."
         )
 
-        self.audit_firewall()
-        self.audit_windows_defender()
-        self.audit_password_policy()
-        self.audit_guest_account()
-        self.audit_remote_desktop()
-        self.audit_uac()
-        self.audit_bitlocker()
-        self.audit_powershell_policy()
-        self.audit_windows_update()
-        self.audit_admin_account()
-        self.audit_smbv1()
-        self.audit_llmnr()
-        self.audit_anonymous_lookup()
-        self.audit_risky_services()
-        self.audit_doh_settings()
 
-        return self.report
-    
-print(
-    "ejecutar pertenece a:",
-    WindowsAuditor.ejecutar.__qualname__
-)
+        checks = [
+
+            self.audit_firewall,
+
+            self.audit_windows_defender,
+
+            self.audit_password_policy,
+
+            self.audit_guest_account,
+
+            self.audit_remote_desktop,
+
+            self.audit_uac,
+
+            self.audit_bitlocker,
+
+            self.audit_powershell_policy,
+
+            self.audit_windows_update,
+
+            self.audit_admin_account,
+
+            self.audit_smbv1,
+
+            self.audit_llmnr,
+
+            self.audit_anonymous_lookup,
+
+            self.audit_risky_services,
+
+            self.audit_doh_settings
+
+        ]
+
+
+        return self.run_checks(checks)

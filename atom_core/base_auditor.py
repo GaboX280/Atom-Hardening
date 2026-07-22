@@ -2,175 +2,328 @@ import subprocess
 import platform
 import datetime
 import os
-import re
 from abc import ABC, abstractmethod
 
 from atom_core.models.finding import Finding
 
 
 class BaseAuditor(ABC):
+
     def __init__(self):
-        # Durante la migración soportamos strings antiguos y Finding nuevos
-        self.report: list[Finding | str] = []
+
+        self.report: list[Finding] = []
 
         self.os_type = platform.system()
 
-        # Colores consola
         self.GREEN = "\033[92m"
         self.RED = "\033[91m"
         self.CYAN = "\033[96m"
         self.YELLOW = "\033[93m"
         self.RESET = "\033[0m"
 
+
     def add_finding(
         self,
         title: str,
         status: str,
         severity: str,
-        recommendation: str = "",
-        details: str | None = None,
+        details: str = "",
+        recommendation: str = ""
     ):
-        """
-        Agrega un hallazgo estructurado al reporte.
-        """
 
         self.report.append(
             Finding(
                 title=title,
                 status=status,
                 severity=severity,
-                recommendation=recommendation,
                 details=details,
+                recommendation=recommendation
             )
         )
 
-    def _run_command(self, command,timeout=10):
+
+    def clear_report(self):
+
+        self.report.clear()
+
+
+
+    def log(
+        self,
+        message: str,
+        level="INFO"
+    ):
+
+        prefix = {
+
+            "INFO": self.CYAN + "[*]",
+
+            "OK": self.GREEN + "[+]",
+
+            "WARN": self.YELLOW + "[!]",
+
+            "ERROR": self.RED + "[-]"
+
+        }
+
+
+        print(
+            f"{prefix.get(level, '[*]')}{self.RESET} {message}"
+        )
+
+
+
+    def _run_command(
+        self,
+        command,
+        timeout=10
+    ):
         """
-        Ejecuta un comando del sistema.
+        Ejecuta comandos del sistema de forma segura.
+        Maneja timeouts, procesos colgados y errores.
         """
 
         try:
-            result = subprocess.run(
+
+            creation_flags = 0
+
+
+            if self.os_type == "Windows":
+
+                creation_flags = (
+                    subprocess.CREATE_NO_WINDOW
+                )
+
+
+            proceso = subprocess.Popen(
+
                 command,
+
                 shell=True,
-                capture_output=True,
+
+                stdout=subprocess.PIPE,
+
+                stderr=subprocess.PIPE,
+
                 text=True,
-                timeout=timeout
+
+                creationflags=creation_flags
+
             )
 
-            return result.stdout.strip()
-        
-        except subprocess.TimeoutExpired:
-            return f"Error: El comando '{command}' excedió el tiempo de espera de {timeout} segundos."
+
+            try:
+
+                stdout, stderr = proceso.communicate(
+                    timeout=timeout
+                )
+
+
+            except subprocess.TimeoutExpired:
+
+
+                proceso.kill()
+
+
+                stdout, stderr = proceso.communicate()
+
+
+                return (
+                    "ERROR: COMMAND_TIMEOUT"
+                )
+
+
+
+            stdout = stdout.strip()
+
+            stderr = stderr.strip()
+
+
+
+            if proceso.returncode != 0:
+
+                if stderr:
+
+                    return (
+                        f"ERROR: {stderr}"
+                    )
+
+
+                return (
+                    f"ERROR: COMMAND_FAILED ({proceso.returncode})"
+                )
+
+
+            return stdout
+
+
+
+        except FileNotFoundError:
+
+            return (
+                "ERROR: COMMAND_NOT_FOUND"
+            )
+
+
+
+        except PermissionError:
+
+            return (
+                "ERROR: ACCESS_DENIED"
+            )
+
+
 
         except Exception as e:
-            return f"Error ejecutando comando: {str(e)}"
+
+            return (
+                f"ERROR: {str(e)}"
+            )
+
+
+
+    def run_checks(
+        self,
+        checks
+    ):
+
+        """
+        Ejecuta todos los módulos de auditoría.
+        Un fallo individual no detiene todo el análisis.
+        """
+
+        self.clear_report()
+
+
+
+        for check in checks:
+
+
+            try:
+
+                check()
+
+
+            except Exception as e:
+
+
+                self.add_finding(
+
+                    title=check.__name__,
+
+                    status="ERROR",
+
+                    severity="HIGH",
+
+                    details=str(e),
+
+                    recommendation=(
+                        "Revisar el módulo afectado."
+                    )
+
+                )
+
+
+
+        return self.report
+
+
+
 
     def save_report_to_file(self):
-        """
-        Guarda el reporte en la carpeta 'Atom Logs'
-        dentro del escritorio del usuario.
-        """
+
 
         home = os.path.expanduser("~")
 
-        rutas_escritorio = [
-            os.path.join(home, "Desktop"),
-            os.path.join(home, "Escritorio")
-        ]
 
-        escritorio = next(
-            (
-                ruta
-                for ruta in rutas_escritorio
-                if os.path.exists(ruta)
-            ),
-            rutas_escritorio[0]
+        escritorio = os.path.join(
+            home,
+            "Desktop"
         )
 
-        carpeta_logs = os.path.join(
+
+        carpeta = os.path.join(
             escritorio,
             "Atom Logs"
         )
 
+
         os.makedirs(
-            carpeta_logs,
+            carpeta,
             exist_ok=True
         )
+
+
 
         timestamp = datetime.datetime.now().strftime(
             "%Y%m%d_%H%M%S"
         )
 
-        filename = os.path.join(
-            carpeta_logs,
+
+        archivo = os.path.join(
+
+            carpeta,
+
             f"reporte_atom_{timestamp}.txt"
+
         )
 
+
+
         with open(
-            filename,
+            archivo,
             "w",
             encoding="utf-8"
         ) as f:
 
-            f.write("--- REPORTE DE AUDITORIA ATOM ---\n")
+
+
             f.write(
-                f"Fecha: {datetime.datetime.now()}\n"
+                "===== REPORTE ATOM =====\n\n"
             )
+
+
             f.write(
                 f"Sistema: {self.os_type}\n"
             )
-            f.write("=" * 30 + "\n\n")
 
 
-            for item in self.report:
-
-                # Compatibilidad con formato antiguo
-                if isinstance(item, str):
-                    clean_line = self._remove_ansi_colors(item)
-                    f.write(clean_line + "\n")
-                    continue
+            f.write(
+                f"Fecha: {datetime.datetime.now()}\n\n"
+            )
 
 
-                # Nuevo formato Finding
-                f.write(
-                    f"[{item.status}] {item.title}\n"
-                )
+            for finding in self.report:
+
 
                 f.write(
-                    f"Severidad: {item.severity}\n"
+                    f"[{finding.status}] "
+                    f"{finding.title}\n"
                 )
 
-                if item.details:
-                    f.write(
-                        f"Detalles: {item.details}\n"
-                    )
 
-                if item.recommendation:
-                    f.write(
-                        f"Recomendación: {item.recommendation}\n"
-                    )
-
-                f.write("\n")
-
-        return filename
+                f.write(
+                    f"Severidad: {finding.severity}\n"
+                )
 
 
-    def _remove_ansi_colors(self, text: str):
-        """
-        Elimina códigos ANSI usados para colores en consola.
-        """
+                f.write(
+                    f"Detalles: {finding.details}\n"
+                )
 
-        ansi_escape = re.compile(
-            r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])'
-        )
 
-        return ansi_escape.sub("", text)
+                f.write(
+                    f"Recomendación: "
+                    f"{finding.recommendation}\n\n"
+                )
+
+
+
+        return archivo
+
 
 
     @abstractmethod
     def ejecutar(self):
-        """
-        Método que cada auditor debe implementar.
-        """
+
         pass
