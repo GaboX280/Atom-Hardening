@@ -37,8 +37,5 @@
    python main.py
 
 Roadmap
-[ ] Implementar módulo de auditoría de permisos de archivos críticos.
-
-[ ] Integrar análisis de configuración de servicios SSH.
-
-[ ] Desarrollo de exportador de reportes en formatos PDF/TXT.
+[] Empaquetar el codigo para que funcione como un ejecutable en Windows
+[] Empaquetar el codigo para que funcione como un ejecutable en Linux 

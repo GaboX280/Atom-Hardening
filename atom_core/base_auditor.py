@@ -5,61 +5,168 @@ import os
 import re
 from abc import ABC, abstractmethod
 
+from atom_core.models.finding import Finding
+
+
 class BaseAuditor(ABC):
     def __init__(self):
-        self.report = []
+        # Durante la migración soportamos strings antiguos y Finding nuevos
+        self.report: list[Finding | str] = []
+
         self.os_type = platform.system()
-        # Colores
+
+        # Colores consola
         self.GREEN = "\033[92m"
         self.RED = "\033[91m"
         self.CYAN = "\033[96m"
         self.YELLOW = "\033[93m"
         self.RESET = "\033[0m"
 
+    def add_finding(
+        self,
+        title: str,
+        status: str,
+        severity: str,
+        recommendation: str = "",
+        details: str | None = None,
+    ):
+        """
+        Agrega un hallazgo estructurado al reporte.
+        """
+
+        self.report.append(
+            Finding(
+                title=title,
+                status=status,
+                severity=severity,
+                recommendation=recommendation,
+                details=details,
+            )
+        )
+
     def _run_command(self, command):
+        """
+        Ejecuta un comando del sistema.
+        """
+
         try:
-            result = subprocess.run(command, shell=True, capture_output=True, text=True)
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+
             return result.stdout.strip()
+
         except Exception as e:
             return f"Error ejecutando comando: {str(e)}"
 
     def save_report_to_file(self):
         """
-        Guarda el reporte en la carpeta 'Atom Logs' del escritorio.
-        Detecta automáticamente si el escritorio se llama 'Desktop' o 'Escritorio'.
+        Guarda el reporte en la carpeta 'Atom Logs'
+        dentro del escritorio del usuario.
         """
+
         home = os.path.expanduser("~")
+
         rutas_escritorio = [
             os.path.join(home, "Desktop"),
             os.path.join(home, "Escritorio")
         ]
-        
-        # Selecciona la ruta que realmente exista en el sistema
-        escritorio = next((ruta for ruta in rutas_escritorio if os.path.exists(ruta)), rutas_escritorio[0])
-        carpeta_logs = os.path.join(escritorio, "Atom Logs")
-        
-        if not os.path.exists(carpeta_logs):
-            os.makedirs(carpeta_logs)
-            
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(carpeta_logs, f"reporte_atom_{timestamp}.txt")
-        
-        with open(filename, "w", encoding="utf-8") as f:
+
+        escritorio = next(
+            (
+                ruta
+                for ruta in rutas_escritorio
+                if os.path.exists(ruta)
+            ),
+            rutas_escritorio[0]
+        )
+
+        carpeta_logs = os.path.join(
+            escritorio,
+            "Atom Logs"
+        )
+
+        os.makedirs(
+            carpeta_logs,
+            exist_ok=True
+        )
+
+        timestamp = datetime.datetime.now().strftime(
+            "%Y%m%d_%H%M%S"
+        )
+
+        filename = os.path.join(
+            carpeta_logs,
+            f"reporte_atom_{timestamp}.txt"
+        )
+
+        with open(
+            filename,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
             f.write("--- REPORTE DE AUDITORIA ATOM ---\n")
-            f.write(f"Fecha: {datetime.datetime.now()}\n")
-            f.write(f"Sistema: {self.os_type}\n")
-            f.write("="*30 + "\n\n")
-            
-            for line in self.report:
-                clean_line = self._remove_ansi_colors(line)
-                f.write(clean_line + "\n")
-        
+            f.write(
+                f"Fecha: {datetime.datetime.now()}\n"
+            )
+            f.write(
+                f"Sistema: {self.os_type}\n"
+            )
+            f.write("=" * 30 + "\n\n")
+
+
+            for item in self.report:
+
+                # Compatibilidad con formato antiguo
+                if isinstance(item, str):
+                    clean_line = self._remove_ansi_colors(item)
+                    f.write(clean_line + "\n")
+                    continue
+
+
+                # Nuevo formato Finding
+                f.write(
+                    f"[{item.status}] {item.title}\n"
+                )
+
+                f.write(
+                    f"Severidad: {item.severity}\n"
+                )
+
+                if item.details:
+                    f.write(
+                        f"Detalles: {item.details}\n"
+                    )
+
+                if item.recommendation:
+                    f.write(
+                        f"Recomendación: {item.recommendation}\n"
+                    )
+
+                f.write("\n")
+
         return filename
 
-    def _remove_ansi_colors(self, text):
-        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-        return ansi_escape.sub('', text)
+
+    def _remove_ansi_colors(self, text: str):
+        """
+        Elimina códigos ANSI usados para colores en consola.
+        """
+
+        ansi_escape = re.compile(
+            r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])'
+        )
+
+        return ansi_escape.sub("", text)
+
 
     @abstractmethod
     def ejecutar(self):
+        """
+        Método que cada auditor debe implementar.
+        """
         pass
