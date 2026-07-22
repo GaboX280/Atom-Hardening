@@ -2,8 +2,8 @@ import subprocess
 import platform
 import datetime
 import os
-from typing import Optional
 
+from typing import Optional
 from abc import ABC, abstractmethod
 
 from atom_core.models.finding import Finding
@@ -30,6 +30,11 @@ class BaseAuditor(ABC):
 
 
 
+    # =====================================================
+    # FINDINGS
+    # =====================================================
+
+
     def add_finding(
         self,
         title: str,
@@ -47,17 +52,11 @@ class BaseAuditor(ABC):
             Finding(
 
                 title=title,
-
                 status=status,
-
                 severity=severity,
-
                 details=details,
-
                 recommendation=recommendation,
-
                 category=category,
-
                 module=(
                     module
                     if module
@@ -74,6 +73,104 @@ class BaseAuditor(ABC):
 
         self.report.clear()
 
+
+
+    # =====================================================
+    # SECURITY SCORE
+    # =====================================================
+
+
+    def calculate_security_score(self):
+
+        score = 100
+
+
+        penalties = {
+
+            "CRITICAL": 25,
+            "HIGH": 15,
+            "MEDIUM": 8,
+            "LOW": 3,
+            "INFO": 0
+
+        }
+
+
+        for finding in self.report:
+
+
+            if finding.status in [
+                "FAIL",
+                "WARNING",
+                "ERROR"
+            ]:
+
+
+                score -= penalties.get(
+                    finding.severity.upper(),
+                    5
+                )
+
+
+        return max(
+            0,
+            score
+        )
+
+
+
+    def get_score_rating(
+        self,
+        score
+    ):
+
+
+        if score >= 90:
+            return "EXCELLENT"
+
+
+        if score >= 75:
+            return "GOOD"
+
+
+        if score >= 50:
+            return "MODERATE"
+
+
+        return "CRITICAL"
+
+
+
+
+    def print_security_score(self):
+
+        score = self.calculate_security_score()
+
+        rating = self.get_score_rating(score)
+
+
+        print(
+            "\n"
+            "=" * 45
+        )
+
+        print(
+            f" SECURITY SCORE: {score}/100"
+        )
+
+        print(
+            f" STATUS: {rating}"
+        )
+
+        print(
+            "=" * 45
+        )
+
+
+
+    # =====================================================
+    # LOGGING
+    # =====================================================
 
 
     def log(
@@ -106,17 +203,25 @@ class BaseAuditor(ABC):
 
 
         print(
+
             f"{prefix.get(level,self.CYAN+'[*]')}"
             f"{self.RESET} {message}"
+
         )
 
 
 
+    # =====================================================
+    # COMMAND EXECUTION
+    # =====================================================
+
+
     def _run_command(
         self,
-        command,
-        timeout=10
+        command: str,
+        timeout: int = 10
     ):
+
 
         try:
 
@@ -145,7 +250,6 @@ class BaseAuditor(ABC):
                 creationflags=flags
 
             )
-
 
 
             try:
@@ -178,10 +282,15 @@ class BaseAuditor(ABC):
 
 
                 return (
+
                     f"ERROR: {stderr}"
+
                     if stderr
+
                     else
+
                     f"ERROR: COMMAND_FAILED ({process.returncode})"
+
                 )
 
 
@@ -205,9 +314,14 @@ class BaseAuditor(ABC):
 
 
 
+    # =====================================================
+    # EXECUTION ENGINE
+    # =====================================================
+
+
     def run_checks(
         self,
-        checks
+        checks: list
     ):
 
 
@@ -245,9 +359,18 @@ class BaseAuditor(ABC):
                 )
 
 
+
+        self.print_security_score()
+
+
         return self.report
 
 
+
+
+    # =====================================================
+    # REPORT
+    # =====================================================
 
 
     def save_report_to_file(self):
@@ -256,7 +379,7 @@ class BaseAuditor(ABC):
         home = os.path.expanduser("~")
 
 
-        carpeta = os.path.join(
+        folder = os.path.join(
 
             home,
 
@@ -268,57 +391,79 @@ class BaseAuditor(ABC):
 
 
         os.makedirs(
-            carpeta,
+
+            folder,
+
             exist_ok=True
+
         )
 
 
 
         timestamp = datetime.datetime.now().strftime(
+
             "%Y%m%d_%H%M%S"
+
         )
 
 
+        filename = os.path.join(
 
-        archivo = os.path.join(
-
-            carpeta,
+            folder,
 
             f"reporte_atom_{timestamp}.txt"
 
         )
 
 
+        score = self.calculate_security_score()
+
+
 
         with open(
 
-            archivo,
+            filename,
 
             "w",
 
             encoding="utf-8"
 
-        ) as f:
+        ) as file:
 
 
 
-            f.write(
+            file.write(
+
                 "========== ATOM SECURITY REPORT ==========\n\n"
+
             )
 
 
-            f.write(
-                f"System: {self.os_type}\n"
+            file.write(
+
+                f"SYSTEM: {self.os_type}\n"
+
             )
 
 
-            f.write(
-                f"Module: {self.module_name}\n"
+            file.write(
+
+                f"MODULE: {self.module_name}\n"
+
             )
 
 
-            f.write(
-                f"Date: {datetime.datetime.now()}\n\n"
+            file.write(
+
+                f"DATE: {datetime.datetime.now()}\n"
+
+            )
+
+
+            file.write(
+
+                f"SECURITY SCORE: {score}/100\n\n"
+
             )
 
 
@@ -326,18 +471,22 @@ class BaseAuditor(ABC):
             for finding in self.report:
 
 
-                f.write(
+                file.write(
+
                     str(finding)
+
                 )
 
 
-                f.write(
+                file.write(
+
                     "\n\n"
+
                 )
 
 
 
-        return archivo
+        return filename
 
 
 
