@@ -82,6 +82,8 @@ class SSHAuditor(BaseAuditor):
                 status="WARNING",
 
                 severity="MEDIUM",
+                
+                category="Remote Access",
 
                 details=(
                     "El servicio OpenSSH Server está activo."
@@ -104,6 +106,8 @@ class SSHAuditor(BaseAuditor):
                 status="PASS",
 
                 severity="INFO",
+                
+                category="Remote Access",
 
                 details=(
                     "El servicio OpenSSH no está activo."
@@ -177,6 +181,8 @@ class SSHAuditor(BaseAuditor):
                 status="WARNING",
 
                 severity="MEDIUM",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -203,6 +209,8 @@ class SSHAuditor(BaseAuditor):
                 status="PASS",
 
                 severity="INFO",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -273,6 +281,8 @@ class SSHAuditor(BaseAuditor):
                 status="PASS",
 
                 severity="INFO",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -299,6 +309,8 @@ class SSHAuditor(BaseAuditor):
                 status="WARNING",
 
                 severity="LOW",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -347,6 +359,8 @@ class SSHAuditor(BaseAuditor):
                 status="PASS",
 
                 severity="INFO",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -373,6 +387,8 @@ class SSHAuditor(BaseAuditor):
                 status="FAIL",
 
                 severity="HIGH",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -421,6 +437,8 @@ class SSHAuditor(BaseAuditor):
                 status="PASS",
 
                 severity="INFO",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -447,6 +465,8 @@ class SSHAuditor(BaseAuditor):
                 status="WARNING",
 
                 severity="MEDIUM",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -494,6 +514,8 @@ class SSHAuditor(BaseAuditor):
                 status="WARNING",
 
                 severity="MEDIUM",
+                
+                category="Remote Access",
 
                 details=(
 
@@ -520,6 +542,8 @@ class SSHAuditor(BaseAuditor):
                 status="PASS",
 
                 severity="INFO",
+                
+                category="Remote Access",
 
                 details=(
 

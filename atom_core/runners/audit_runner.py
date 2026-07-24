@@ -1,8 +1,17 @@
 from atom_core.auditor_factory import AuditorFactory
+
 from atom_core.reporters.console_reporter import ConsoleReporter
+from atom_core.reporters.text_reporter import TextReporter
+from atom_core.reporters.json_reporter import JsonReporter
+from atom_core.reporters.html_reporter import HTMLReporter
+
+from atom_core.core.security_score import SecurityScore
+from atom_core.core.security_summary import SecuritySummary
+
 
 
 class AuditRunner:
+
 
 
     AUDITS = {
@@ -12,6 +21,7 @@ class AuditRunner:
         "3": "ssh"
 
     }
+
 
 
 
@@ -47,7 +57,7 @@ class AuditRunner:
 
 
 
-        if findings is None:
+        if not findings:
 
 
             print(
@@ -59,41 +69,126 @@ class AuditRunner:
 
 
 
-        ConsoleReporter.display(
+
+        # ==========================
+        # SECURITY ANALYSIS
+        # ==========================
+
+
+        score = SecurityScore.calculate(
             findings
         )
 
 
+        rating = SecurityScore.rating(
+            score
+        )
 
-        reports = auditor.save_report_to_file()
+
+        summary = SecuritySummary.summarize(
+            findings
+        )
+
+
+        summary["score"] = score
+
+        summary["rating"] = rating
+
+        summary["module"] = auditor.__class__.__name__
 
 
 
-        print(
-            "\n[+] Reportes generados:"
+
+
+
+        # ==========================
+        # CONSOLE REPORT
+        # ==========================
+
+
+        ConsoleReporter.display(
+
+            findings,
+
+            score,
+
+            rating
+
         )
 
 
 
-        if isinstance(
-            reports,
-            dict
-        ):
 
 
-            print(
-                f"    TXT : {reports.get('text','NO GENERADO')}"
-            )
+        # ==========================
+        # FILE REPORTS
+        # ==========================
 
 
-            print(
-                f"    JSON: {reports.get('json','NO GENERADO')}"
-            )
+        reports = {}
 
 
-        else:
+
+        reports["text"] = TextReporter.save(
+
+            summary,
+
+            findings
+
+        )
 
 
-            print(
-                f"    {reports}"
-            )
+
+        reports["json"] = JsonReporter.save(
+
+            summary,
+
+            findings
+
+        )
+
+
+
+        reports["html"] = HTMLReporter.save(
+
+            summary,
+
+            findings
+
+        )
+
+
+
+
+
+        print(
+
+            "\n[+] Reportes generados:"
+
+        )
+
+
+
+        print(
+
+            f"    TXT : {reports['text']}"
+
+        )
+
+
+        print(
+
+            f"    JSON: {reports['json']}"
+
+        )
+
+
+        print(
+
+            f"    HTML: {reports['html']}"
+
+        )
+
+
+
+        return reports

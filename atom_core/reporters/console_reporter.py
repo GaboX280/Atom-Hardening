@@ -10,42 +10,54 @@ class ConsoleReporter:
     CYAN = "\033[96m"
     BLUE = "\033[94m"
     WHITE = "\033[97m"
+    MAGENTA = "\033[95m"
     RESET = "\033[0m"
 
 
 
     @staticmethod
-    def display(findings):
+    def display(
+        findings,
+        score=None,
+        rating=None
+    ):
 
 
-        summary = Counter(
+        if not findings:
+
+            print(
+                f"{ConsoleReporter.YELLOW}"
+                "\n[!] No se encontraron resultados."
+                f"{ConsoleReporter.RESET}"
+            )
+
+            return
+
+
+
+        status_summary = Counter(
+
             finding.status.upper()
+
             for finding in findings
+
         )
 
 
-        score_color = ConsoleReporter.GREEN
+        severity_summary = Counter(
 
+            finding.severity.upper()
 
-        if summary.get("FAIL", 0) > 0:
+            for finding in findings
 
-            score_color = ConsoleReporter.RED
-
-
-        elif summary.get("WARNING", 0) > 0:
-
-            score_color = ConsoleReporter.YELLOW
+        )
 
 
 
         print("\n")
 
 
-        print(
-            f"{ConsoleReporter.CYAN}"
-            "=" * 70,
-            f"{ConsoleReporter.RESET}"
-        )
+        ConsoleReporter._line()
 
 
         print(
@@ -56,11 +68,71 @@ class ConsoleReporter:
 
 
         print(
-            f"{ConsoleReporter.CYAN}"
-            "=" * 70,
+            f"{ConsoleReporter.BLUE}"
+            "                 Version 1.0"
             f"{ConsoleReporter.RESET}"
         )
 
+
+        ConsoleReporter._line()
+
+
+
+        # ===============================
+        # SECURITY SCORE
+        # ===============================
+
+
+        if score is not None:
+
+
+            score_color = ConsoleReporter.GREEN
+
+
+            if score < 50:
+
+                score_color = ConsoleReporter.RED
+
+
+            elif score < 75:
+
+                score_color = ConsoleReporter.YELLOW
+
+
+
+            print()
+
+
+            print(
+                " SECURITY SCORE"
+            )
+
+
+            print("-" * 70)
+
+
+            print(
+                f"{score_color}"
+                f"        {score}/100"
+                f"{ConsoleReporter.RESET}"
+            )
+
+
+            if rating:
+
+                print(
+                    f"        Rating: {rating}"
+                )
+
+
+            print("-" * 70)
+
+
+
+
+        # ===============================
+        # SUMMARY
+        # ===============================
 
 
         print()
@@ -81,30 +153,49 @@ class ConsoleReporter:
         )
 
 
-        print(
-            f"{ConsoleReporter.GREEN}"
-            f" PASS         : {summary.get('PASS',0)}"
-            f"{ConsoleReporter.RESET}"
+        ConsoleReporter._print_count(
+
+            "PASS",
+            status_summary.get("PASS",0),
+            ConsoleReporter.GREEN
+
         )
 
 
-        print(
-            f"{ConsoleReporter.YELLOW}"
-            f" WARNING      : {summary.get('WARNING',0)}"
-            f"{ConsoleReporter.RESET}"
+        ConsoleReporter._print_count(
+
+            "WARNING",
+            status_summary.get("WARNING",0),
+            ConsoleReporter.YELLOW
+
         )
 
 
-        print(
-            f"{ConsoleReporter.RED}"
-            f" FAIL         : {summary.get('FAIL',0)}"
-            f"{ConsoleReporter.RESET}"
+        ConsoleReporter._print_count(
+
+            "FAIL",
+            status_summary.get("FAIL",0),
+            ConsoleReporter.RED
+
         )
 
 
+        ConsoleReporter._print_count(
+
+            "ERROR",
+            status_summary.get("ERROR",0),
+            ConsoleReporter.RED
+
+        )
+
+
+        print()
+
+
+
         print(
-            f"{ConsoleReporter.RED}"
-            f" ERROR        : {summary.get('ERROR',0)}"
+            f"{ConsoleReporter.MAGENTA}"
+            " SEVERITY SUMMARY"
             f"{ConsoleReporter.RESET}"
         )
 
@@ -112,9 +203,40 @@ class ConsoleReporter:
         print("-" * 70)
 
 
+        for severity in [
+
+            "CRITICAL",
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "INFO"
+
+        ]:
+
+
+            print(
+
+                f" {severity:<10}: "
+                f"{severity_summary.get(severity,0)}"
+
+            )
+
+
+
+        print("-" * 70)
+
+
+
+        # ===============================
+        # FINDINGS
+        # ===============================
+
+
+        print()
+
 
         print(
-            f"\n{ConsoleReporter.WHITE}"
+            f"{ConsoleReporter.WHITE}"
             " SECURITY FINDINGS"
             f"{ConsoleReporter.RESET}"
         )
@@ -134,6 +256,7 @@ class ConsoleReporter:
             if status == "PASS":
 
                 color = ConsoleReporter.GREEN
+
                 icon = "[+]"
 
 
@@ -141,13 +264,20 @@ class ConsoleReporter:
             elif status == "WARNING":
 
                 color = ConsoleReporter.YELLOW
+
                 icon = "[!]"
 
 
 
-            elif status in ["FAIL", "ERROR"]:
+            elif status in [
+
+                "FAIL",
+                "ERROR"
+
+            ]:
 
                 color = ConsoleReporter.RED
+
                 icon = "[X]"
 
 
@@ -155,8 +285,8 @@ class ConsoleReporter:
             else:
 
                 color = ConsoleReporter.WHITE
-                icon = "[?]"
 
+                icon = "[?]"
 
 
 
@@ -164,14 +294,21 @@ class ConsoleReporter:
 
 
             print(
+
                 f"{color}"
                 f"{icon} {finding.title}"
                 f"{ConsoleReporter.RESET}"
+
             )
 
 
             print(
-                f"    Status      : {status}"
+                f"    ID          : {finding.finding_id}"
+            )
+
+
+            print(
+                f"    Status      : {finding.status}"
             )
 
 
@@ -196,20 +333,24 @@ class ConsoleReporter:
 
 
             print(
-                f"    Recommendation:"
+                f"    Fix         : {finding.recommendation}"
             )
 
-
-            print(
-                f"    -> {finding.recommendation}"
-            )
 
 
             if finding.reference:
 
+
                 print(
                     f"    Reference   : {finding.reference}"
                 )
+
+
+
+            print(
+                f"    Timestamp   : {finding.timestamp}"
+            )
+
 
 
             print(
@@ -218,25 +359,54 @@ class ConsoleReporter:
 
 
 
-        print()
+        ConsoleReporter._line()
 
 
         print(
-            f"{ConsoleReporter.CYAN}"
-            "=" * 70,
-            f"{ConsoleReporter.RESET}"
-        )
 
-
-        print(
-            f"{score_color}"
+            f"{ConsoleReporter.GREEN}"
             "        Audit Completed Successfully"
             f"{ConsoleReporter.RESET}"
+
         )
 
 
+        ConsoleReporter._line()
+
+
+
+
+
+    # ==================================
+    # HELPERS
+    # ==================================
+
+
+    @staticmethod
+    def _line():
+
         print(
+
             f"{ConsoleReporter.CYAN}"
-            "=" * 70,
+            + "=" * 70
+            + f"{ConsoleReporter.RESET}"
+
+        )
+
+
+
+
+    @staticmethod
+    def _print_count(
+        name,
+        value,
+        color
+    ):
+
+        print(
+
+            f"{color}"
+            f" {name:<12}: {value}"
             f"{ConsoleReporter.RESET}"
+
         )

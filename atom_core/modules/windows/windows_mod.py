@@ -26,6 +26,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Firewall",
                 status="PASS",
                 severity="INFO",
+                category="Network Security",
                 details="El Firewall de Windows está activo.",
                 recommendation=(
                     "Mantener las reglas del firewall actualizadas."
@@ -39,6 +40,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Firewall",
                 status="FAIL",
                 severity="HIGH",
+                category="Network Security",
                 details=(
                     "El Firewall de Windows parece estar desactivado."
                 ),
@@ -72,6 +74,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Defender",
                 status="PASS",
                 severity="INFO",
+                category="Antivirus Protection",
                 details=(
                     "La protección en tiempo real está activa."
                 ),
@@ -87,6 +90,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Defender",
                 status="FAIL",
                 severity="HIGH",
+                category="Antivirus Protection",
                 details=(
                     "La protección en tiempo real está deshabilitada."
                 ),
@@ -156,6 +160,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Password Policy",
                 status="FAIL",
                 severity="MEDIUM",
+                category="Password Policy",
                 details=(
                     f"Longitud mínima encontrada: {longitud_minima}"
                 ),
@@ -202,6 +207,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Guest Account",
                 status="FAIL",
                 severity="MEDIUM",
+                category="Identity Management",
                 details=(
                     "La cuenta Invitado está habilitada."
                 ),
@@ -217,6 +223,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Guest Account",
                 status="PASS",
                 severity="INFO",
+                category="Identity Management",
                 details=(
                     "La cuenta Invitado está deshabilitada."
                 ),
@@ -249,6 +256,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Remote Desktop (RDP)",
                 status="WARNING",
                 severity="MEDIUM",
+                category="Remote Access",
                 details="Escritorio Remoto está habilitado.",
                 recommendation=(
                     "Deshabilitar RDP si no es requerido."
@@ -259,6 +267,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Remote Desktop (RDP)",
                 status="PASS",
                 severity="INFO",
+                category="Remote Access",
                 details="Escritorio Remoto está deshabilitado.",
                 recommendation=(
                     "Mantener acceso remoto restringido."
@@ -290,6 +299,7 @@ class WindowsAuditor(BaseAuditor):
                 title="User Account Control (UAC)",
                 status="FAIL",
                 severity="HIGH",
+                category="System Hardening",
                 details=(
                     "UAC configurado en nivel inseguro."
                 ),
@@ -305,6 +315,7 @@ class WindowsAuditor(BaseAuditor):
                 title="User Account Control (UAC)",
                 status="PASS",
                 severity="INFO",
+                category="System Hardening",
                 details=(
                     "Configuración UAC segura."
                 ),
@@ -339,6 +350,7 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="WARNING",
                 severity="MEDIUM",
+                category="Data Protection",
                 details=(
                     "No fue posible consultar el estado de BitLocker."
                 ),
@@ -358,6 +370,7 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="PASS",
                 severity="INFO",
+                category="Data Protection",
                 details=(
                     "La unidad C está completamente cifrada."
                 ),
@@ -377,6 +390,7 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="FAIL",
                 severity="HIGH",
+                category="Data Protection",
                 details=(
                     "La unidad C no está cifrada."
                 ),
@@ -392,6 +406,7 @@ class WindowsAuditor(BaseAuditor):
                 title="BitLocker",
                 status="WARNING",
                 severity="MEDIUM",
+                category="Data Protection",
                 details=(
                     "No se pudo determinar completamente el estado de cifrado."
                 ),
@@ -432,6 +447,7 @@ class WindowsAuditor(BaseAuditor):
                 title="PowerShell Execution Policy",
                 status="FAIL",
                 severity="HIGH",
+                category="System Hardening",
                 details=(
                     f"Directiva insegura detectada: {resultado}"
                 ),
@@ -447,6 +463,7 @@ class WindowsAuditor(BaseAuditor):
                 title="PowerShell Execution Policy",
                 status="PASS",
                 severity="INFO",
+                category="System Hardening",
                 details=(
                     f"Directiva actual: {resultado}"
                 ),
@@ -483,6 +500,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Update Service",
                 status="PASS",
                 severity="INFO",
+                category="System Hardening",
                 details=(
                     "El servicio Windows Update está ejecutándose."
                 ),
@@ -498,6 +516,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Update Service",
                 status="WARNING",
                 severity="MEDIUM",
+                category="System Hardening",
                 details=(
                     "El servicio Windows Update está detenido."
                 ),
@@ -514,6 +533,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Windows Update Service",
                 status="FAIL",
                 severity="HIGH",
+                category="System Hardening",
                 details=(
                     "No fue posible determinar el estado del servicio Windows Update."
                 ),
@@ -572,6 +592,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Default Administrator Account",
                 status="FAIL",
                 severity="HIGH",
+                category="Identity Management",
                 details=(
                     "La cuenta Administrador nativa está habilitada."
                 ),
@@ -587,6 +608,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Default Administrator Account",
                 status="PASS",
                 severity="INFO",
+                category="Identity Management",
                 details=(
                     "La cuenta Administrador nativa está deshabilitada o no encontrada."
                 ),
@@ -623,6 +645,7 @@ class WindowsAuditor(BaseAuditor):
                 title="SMBv1 Protocol",
                 status="FAIL",
                 severity="CRITICAL",
+                category="Network Security",
                 details=(
                     "SMBv1 está habilitado."
                 ),
@@ -638,6 +661,7 @@ class WindowsAuditor(BaseAuditor):
                 title="SMBv1 Protocol",
                 status="PASS",
                 severity="INFO",
+                category="Network Security",
                 details=(
                     "SMBv1 está deshabilitado."
                 ),
@@ -653,6 +677,7 @@ class WindowsAuditor(BaseAuditor):
                 title="SMBv1 Protocol",
                 status="PASS",
                 severity="INFO",
+                category="Network Security",
                 details=(
                     "SMBv1 no está activo o no pudo detectarse."
                 ),
@@ -692,6 +717,7 @@ class WindowsAuditor(BaseAuditor):
                     title="LLMNR Protocol",
                     status="PASS",
                     severity="INFO",
+                    category="Network Security",
                     details="LLMNR está deshabilitado.",
                     recommendation=(
                         "Mantener mitigaciones contra spoofing activas."
@@ -704,6 +730,7 @@ class WindowsAuditor(BaseAuditor):
                     title="LLMNR Protocol",
                     status="FAIL",
                     severity="HIGH",
+                    category="Network Security",
                     details="LLMNR está habilitado.",
                     recommendation=(
                         "Deshabilitar LLMNR para reducir ataques Responder."
@@ -716,6 +743,7 @@ class WindowsAuditor(BaseAuditor):
                 title="LLMNR Protocol",
                 status="WARNING",
                 severity="MEDIUM",
+                category="Network Security",
                 details=(
                     "No existe una política explícita para LLMNR."
                 ),
@@ -754,6 +782,7 @@ class WindowsAuditor(BaseAuditor):
                     title="Anonymous Access Restrictions",
                     status="PASS",
                     severity="INFO",
+                    category="Network Security",
                     details=(
                         "Restricciones contra acceso anónimo activadas."
                     ),
@@ -768,6 +797,7 @@ class WindowsAuditor(BaseAuditor):
                     title="Anonymous Access Restrictions",
                     status="FAIL",
                     severity="HIGH",
+                    category="Network Security",
                     details=(
                         "Las sesiones nulas pueden estar permitidas."
                     ),
@@ -782,6 +812,7 @@ class WindowsAuditor(BaseAuditor):
                 title="Anonymous Access Restrictions",
                 status="WARNING",
                 severity="MEDIUM",
+                category="Network Security",
                 details=(
                     "No se encontró configuración explícita."
                 ),
@@ -829,6 +860,7 @@ class WindowsAuditor(BaseAuditor):
                     title=f"Risky Service: {description}",
                     status="FAIL",
                     severity="MEDIUM",
+                    category="Service Management",
                     details=(
                         f"El servicio {description} está ejecutándose."
                     ),
@@ -844,6 +876,7 @@ class WindowsAuditor(BaseAuditor):
                     title=f"Risky Service: {description}",
                     status="PASS",
                     severity="INFO",
+                    category="Service Management",
                     details=(
                         f"El servicio {description} no está activo."
                     ),
@@ -884,6 +917,7 @@ class WindowsAuditor(BaseAuditor):
                 title="DNS over HTTPS",
                 status="PASS",
                 severity="INFO",
+                category="Network Security",
                 details=(
                     "DNS over HTTPS está habilitado."
                 ),
@@ -898,6 +932,7 @@ class WindowsAuditor(BaseAuditor):
                 title="DNS over HTTPS",
                 status="WARNING",
                 severity="LOW",
+                category="Network Security",
                 details=(
                     "DNS over HTTPS no está habilitado o configurado."
                 ),

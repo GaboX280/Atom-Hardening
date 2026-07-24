@@ -61,6 +61,7 @@ class WindowsFileAuditor(BaseAuditor):
                 title=f"File Permissions: {ruta}",
                 status="ERROR",
                 severity="HIGH",
+                category="File Permissions",
                 details=resultado,
                 recommendation=(
                     "Verificar permisos y privilegios administrativos."
@@ -107,6 +108,7 @@ class WindowsFileAuditor(BaseAuditor):
                 title=f"File Permissions: {ruta}",
                 status="FAIL",
                 severity="HIGH",
+                category="File Permissions",
                 details=(
                     "Usuarios no privilegiados tienen permisos excesivos."
                 ),
@@ -122,6 +124,7 @@ class WindowsFileAuditor(BaseAuditor):
                 title=f"File Permissions: {ruta}",
                 status="PASS",
                 severity="INFO",
+                category="File Permissions",
                 details=(
                     "Permisos NTFS correctamente restringidos."
                 ),
@@ -157,6 +160,7 @@ class WindowsFileAuditor(BaseAuditor):
                 title=f"File Protection: {ruta}",
                 status="PASS",
                 severity="INFO",
+                category="File Protection",
                 details=(
                     "El archivo está protegido contra acceso no autorizado."
                 ),
@@ -175,6 +179,7 @@ class WindowsFileAuditor(BaseAuditor):
                 title=f"File Protection: {ruta}",
                 status="WARNING",
                 severity="MEDIUM",
+                category="File Protection",
                 details=resultado,
                 recommendation=(
                     "Revisar permisos del archivo."
@@ -189,6 +194,7 @@ class WindowsFileAuditor(BaseAuditor):
             title=f"File Protection: {ruta}",
             status="FAIL",
             severity="CRITICAL",
+            category="File Protection",
             details=(
                 "El archivo sensible puede ser leído."
             ),
