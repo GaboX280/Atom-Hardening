@@ -7,36 +7,36 @@ class SecuritySummary:
     def summarize(findings):
 
         status = Counter(
-            finding.status.upper()
-            for finding in findings
+            f.status.upper()
+            for f in findings
         )
 
         severity = Counter(
-            finding.severity.upper()
-            for finding in findings
+            f.severity.upper()
+            for f in findings
         )
+
+        modules = Counter(
+            f.module
+            for f in findings
+        )
+
+        categories = Counter(
+            f.category
+            for f in findings
+        )
+
 
         return {
 
             "total": len(findings),
 
-            "status": {
+            "status": dict(status),
 
-                "PASS": status.get("PASS", 0),
-                "WARNING": status.get("WARNING", 0),
-                "FAIL": status.get("FAIL", 0),
-                "ERROR": status.get("ERROR", 0)
+            "severity": dict(severity),
 
-            },
+            "modules": dict(modules),
 
-            "severity": {
-
-                "CRITICAL": severity.get("CRITICAL", 0),
-                "HIGH": severity.get("HIGH", 0),
-                "MEDIUM": severity.get("MEDIUM", 0),
-                "LOW": severity.get("LOW", 0),
-                "INFO": severity.get("INFO", 0)
-
-            }
+            "categories": dict(categories)
 
         }
