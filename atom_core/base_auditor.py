@@ -1,14 +1,11 @@
-import subprocess
 import platform
-import datetime
-import os
-
-from typing import Optional
+import subprocess
 from abc import ABC, abstractmethod
 
-from atom_core.models.finding import Finding
 from atom_core.core.security_score import SecurityScore
-
+from atom_core.core.security_summary import SecuritySummary
+from atom_core.models.finding import Finding
+from atom_core.reporters.text_reporter import TextReporter
 
 
 class BaseAuditor(ABC):
@@ -44,7 +41,7 @@ class BaseAuditor(ABC):
         details: str = "",
         recommendation: str = "",
         category: str = "General",
-        module: Optional[str] = None
+        module: str | None = None
     ):
 
 
@@ -86,7 +83,6 @@ class BaseAuditor(ABC):
     # SECURITY SCORE
     # =====================================================
 
-
     def calculate_security_score(self):
 
         return SecurityScore.calculate(
@@ -94,10 +90,9 @@ class BaseAuditor(ABC):
         )
 
 
-
     def get_score_rating(
         self,
-        score
+        score: int
     ):
 
         return SecurityScore.rating(
@@ -105,52 +100,37 @@ class BaseAuditor(ABC):
         )
 
 
-
     def print_security_score(self):
 
         score = self.calculate_security_score()
 
-        rating = self.get_score_rating(
-            score
-        )
+        rating = self.get_score_rating(score)
 
-
-        print(
-            "\n" + "=" * 45
-        )
-
-        print(
-            f" SECURITY SCORE: {score}/100"
-        )
-
-        print(
-            f" STATUS: {rating}"
-        )
-
-        print(
-            "=" * 45
-        )
-
+        print("\n" + "=" * 45)
+        print(f" SECURITY SCORE: {score}/100")
+        print(f" STATUS: {rating}")
+        print("=" * 45)
 
 
     def get_security_summary(self):
 
         score = self.calculate_security_score()
 
+        summary = SecuritySummary.summarize(
+            self.report
+        )
 
-        return {
+        summary["system"] = self.os_type
 
-            "system": self.os_type,
+        summary["module"] = self.module_name
 
-            "module": self.module_name,
+        summary["score"] = score
 
-            "score": score,
+        summary["rating"] = self.get_score_rating(
+            score
+        )
 
-            "rating": self.get_score_rating(score),
-
-            "findings": len(self.report)
-
-        }
+        return summary
 
 
 
@@ -363,128 +343,10 @@ class BaseAuditor(ABC):
 
 
     def save_report_to_file(self):
-
-
-        home = os.path.expanduser("~")
-
-
-        folder = os.path.join(
-
-            home,
-
-            "Desktop",
-
-            "Atom Logs"
-
+        return TextReporter.save(
+            self.get_security_summary(),
+            self.report
         )
-
-
-        os.makedirs(
-
-            folder,
-
-            exist_ok=True
-
-        )
-
-
-
-        timestamp = datetime.datetime.now().strftime(
-
-            "%Y%m%d_%H%M%S"
-
-        )
-
-
-        filename = os.path.join(
-
-            folder,
-
-            f"reporte_atom_{timestamp}.txt"
-
-        )
-
-
-        score = self.calculate_security_score()
-
-        rating = self.get_score_rating(score)
-
-
-
-        with open(
-
-            filename,
-
-            "w",
-
-            encoding="utf-8"
-
-        ) as file:
-
-
-
-            file.write(
-
-                "========== ATOM SECURITY REPORT ==========\n\n"
-
-            )
-
-
-            file.write(
-
-                f"SYSTEM: {self.os_type}\n"
-
-            )
-
-
-            file.write(
-
-                f"MODULE: {self.module_name}\n"
-
-            )
-
-
-            file.write(
-
-                f"DATE: {datetime.datetime.now()}\n"
-
-            )
-
-
-            file.write(
-
-                f"SECURITY SCORE: {score}/100\n"
-
-            )
-
-
-            file.write(
-
-                f"RATING: {rating}\n\n"
-
-            )
-
-
-
-            for finding in self.report:
-
-
-                file.write(
-
-                    str(finding)
-
-                )
-
-
-                file.write(
-
-                    "\n\n"
-
-                )
-
-
-
-        return filename
 
 
 
