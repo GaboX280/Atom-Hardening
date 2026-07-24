@@ -14,13 +14,19 @@ class AuditRunner:
     }
 
 
-    def run(self, option):
+
+    def run(
+        self,
+        option
+    ):
 
 
         auditor_type = self.AUDITS.get(option)
 
 
+
         if not auditor_type:
+
 
             print(
                 "[!] Auditoría inválida"
@@ -30,12 +36,26 @@ class AuditRunner:
 
 
 
+
         auditor = AuditorFactory.get_auditor(
             auditor_type
         )
 
 
+
         findings = auditor.ejecutar()
+
+
+
+        if findings is None:
+
+
+            print(
+                "[!] El auditor no devolvió resultados."
+            )
+
+            return
+
 
 
 
@@ -44,4 +64,36 @@ class AuditRunner:
         )
 
 
-        auditor.save_report_to_file()
+
+        reports = auditor.save_report_to_file()
+
+
+
+        print(
+            "\n[+] Reportes generados:"
+        )
+
+
+
+        if isinstance(
+            reports,
+            dict
+        ):
+
+
+            print(
+                f"    TXT : {reports.get('text','NO GENERADO')}"
+            )
+
+
+            print(
+                f"    JSON: {reports.get('json','NO GENERADO')}"
+            )
+
+
+        else:
+
+
+            print(
+                f"    {reports}"
+            )

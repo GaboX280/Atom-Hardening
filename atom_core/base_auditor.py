@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from atom_core.core.security_score import SecurityScore
 from atom_core.core.security_summary import SecuritySummary
 from atom_core.models.finding import Finding
+from atom_core.reporters.json_reporter import JsonReporter
 from atom_core.reporters.text_reporter import TextReporter
 
 
@@ -343,11 +344,20 @@ class BaseAuditor(ABC):
 
 
     def save_report_to_file(self):
-        return TextReporter.save(
+        txt = TextReporter.save(
             self.get_security_summary(),
             self.report
         )
-
+        
+        json = JsonReporter.save(
+            self.get_security_summary(),
+            self.report
+        )
+        
+        return {
+            "text": txt,
+            "json": json
+        }
 
 
 

@@ -3,8 +3,9 @@ import subprocess
 import sys
 
 from atom_core.auditor_factory import AuditorFactory
+from atom_core.interface.interface import AtomInterface
 from atom_core.reporters.console_reporter import ConsoleReporter
-from atom_core.utils.interface import AtomInterface
+from atom_core.runners.audit_runner import AuditRunner
 
 
 def clear_screen():
@@ -65,86 +66,36 @@ def run_audit(option):
 
 
 def main():
-    # Inicializar la interfaz de usuario
+
     interface = AtomInterface()
+    runner = AuditRunner()
 
 
     while True:
 
+        interface.clear_screen()
 
-        clear_screen()
+        interface.show_menu()
 
-
-        try:
-
-
-            interface.show_menu()
+        opcion = interface.get_choice()
 
 
-            opcion = interface.get_choice()
+        if opcion in {"1","2","3"}:
 
-
-
-            if opcion in {
-
-                "1",
-                "2",
-                "3"
-
-            }:
-
-
-                run_audit(
-                    opcion
-                )
-
-
-                input(
-                    "\nPresiona Enter para regresar al menú..."
-                )
-
-
-
-            elif opcion == "4":
-
-
-                print(
-                    "\n[+] Gracias por usar Atom."
-                )
-
-
-                clear_screen()
-
-
-                sys.exit(0)
-
-
-
-            else:
-
-
-                print(
-                    "\n[!] Opción no válida."
-                )
-
-
-                input(
-                    "\nPresiona Enter para continuar..."
-                )
-
-
-
-        except Exception as e:
-
-
-            print(
-                f"\n[!] Error inesperado: {e}"
-            )
-
+            runner.run(opcion)
 
             input(
-                "\nPresiona Enter para continuar..."
+                "\nPresiona Enter para regresar..."
             )
+
+
+        elif opcion == "4":
+
+            print(
+                "\n[+] Gracias por usar Atom."
+            )
+
+            break
 
 
 
