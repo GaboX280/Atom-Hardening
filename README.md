@@ -246,22 +246,22 @@ Sistema de penalización:
 
 ## Main Interface
 
-![Atom Menu](screenshots/menu_inicio.png)
+![Atom Menu](docs/screenshots/menu_inicio.png)
 
 
 ## Windows Security Audit
 
-![Windows Audit](screenshots/Ejecucion_windows_auditor.png)
+![Windows Audit](docs/screenshots/Ejecucion_windows_audit.png)
 
 
 ## Security Score
 
-![Security Score](screenshots/Security_Score.png)
+![Security Score](docs/screenshots/Security_Score.png)
 
 
 ## Security Results
 
-![Results](screenshots/Resultados_windows.png)
+![Results](docs/screenshots/Resultados_windows.png)
 
 ---
 
