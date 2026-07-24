@@ -4,13 +4,17 @@
   <b>Automated Security Auditing Framework for Windows and Linux</b>
 </p>
 
+<p align="center">
+  Version: 1.0
+</p>
+
 ---
 
-## Descripción
+# Descripción
 
-**Atom** es una herramienta modular de auditoría de seguridad desarrollada en Python orientada a evaluar configuraciones críticas de sistemas Windows y Linux.
+**Atom** es una herramienta modular de auditoría y hardening desarrollada en Python orientada a identificar debilidades de configuración en sistemas Windows y Linux.
 
-Su objetivo es identificar debilidades de hardening, generar hallazgos estructurados y proporcionar recomendaciones para mejorar la postura de seguridad del sistema.
+Su objetivo es analizar configuraciones críticas, generar hallazgos estructurados y proporcionar recomendaciones de seguridad para mejorar la postura del sistema.
 
 Atom utiliza una arquitectura basada en módulos independientes, permitiendo agregar nuevos auditores sin modificar el núcleo principal de la aplicación.
 
@@ -20,15 +24,17 @@ Atom utiliza una arquitectura basada en módulos independientes, permitiendo agr
 
 ## Auditoría de Sistemas
 
-Evaluación de configuraciones críticas del sistema operativo:
+Evaluación de configuraciones críticas del sistema operativo.
 
-### Windows
+## Windows Hardening Audit
+
+Actualmente incluye:
 
 - Firewall de Windows
 - Windows Defender
-- Políticas de contraseñas
-- Cuentas administrativas
+- Políticas de contraseña
 - Cuenta Guest
+- Cuenta Administrator
 - User Account Control (UAC)
 - BitLocker
 - Windows Update
@@ -36,36 +42,85 @@ Evaluación de configuraciones críticas del sistema operativo:
 - SMBv1
 - LLMNR
 - Restricciones de acceso anónimo
-- Servicios de riesgo
+- Servicios con superficie de ataque elevada
 - DNS over HTTPS
 
+
 ---
 
-## Auditoría de Archivos
+# Auditoría de Archivos
 
-Evaluación de protección sobre archivos sensibles:
+Evaluación de protección sobre archivos críticos del sistema:
 
 - Permisos NTFS
-- Protección de archivos críticos del sistema
-- Archivos sensibles como SAM y hosts
+- Protección de archivos sensibles
+- Análisis de archivos como:
+  - SAM
+  - Hosts
+
 
 ---
 
-## Auditoría SSH
+# Auditoría SSH
 
-Evaluación de configuraciones SSH:
+Evaluación de configuración y exposición SSH.
+
+Incluye:
 
 - Estado del servicio SSH
-- Existencia de configuración
+- Configuración SSH
 - Root Login
 - Password Authentication
-- Exposición del servicio en red
+- Exposición de puertos SSH
+- OpenSSH en Windows
+
+
+---
+
+# Reportes
+
+Atom genera reportes en múltiples formatos:
+
+## Console Report
+
+Reporte visual en terminal con:
+
+- Estados PASS / WARNING / FAIL
+- Severidad
+- Categorías
+- Recomendaciones
+
+
+## TXT Report
+
+Generación automática de reportes almacenados localmente.
+
+
+## JSON Report
+
+Salida estructurada para integración futura con:
+
+- Dashboards
+- SIEM
+- Sistemas externos de monitoreo
+
+
+Ejemplo:
+
+```json
+{
+    "title": "Windows Firewall",
+    "status": "PASS",
+    "severity": "INFO",
+    "module": "WindowsAuditor"
+}
+```
 
 ---
 
 # Arquitectura
 
-Atom utiliza una arquitectura modular basada en auditores independientes.
+Atom utiliza una arquitectura modular basada en componentes independientes.
 
 ```
 ATOM
@@ -79,11 +134,17 @@ ATOM
 │
 ├── BaseAuditor
 │
-├── SecurityScore
+├── Models
+│   └── Finding
 │
-├── SecuritySummary
+├── Utils
+│   ├── SecurityScore
+│   └── SecuritySummary
 │
 ├── Reporters
+│   ├── ConsoleReporter
+│   ├── TextReporter
+│   └── JSONReporter
 │
 └── Modules
 
@@ -121,14 +182,19 @@ Auditor seleccionado
   |
   v
 
+Security Checks
+
+  |
+  v
+
 Finding Objects
 
   |
-  +------------+
-  |            |
-  v            v
+  +----------------+
+  |                |
+  v                v
 
-Security     Reporters
+Security       Reporters
 Score
 ```
 
@@ -136,16 +202,17 @@ Score
 
 # Sistema de Findings
 
-Cada hallazgo generado por Atom contiene:
+Cada hallazgo generado por Atom contiene información estructurada:
 
 | Campo | Descripción |
 |---|---|
 | Title | Nombre del hallazgo |
 | Status | PASS / WARNING / FAIL / ERROR |
 | Severity | Nivel de impacto |
-| Category | Categoría de seguridad |
+| Category | Área de seguridad afectada |
 | Module | Auditor responsable |
 | Recommendation | Acción recomendada |
+| Reference | Referencia de seguridad |
 | Timestamp | Fecha de detección |
 
 ---
@@ -157,13 +224,13 @@ Atom calcula una puntuación de seguridad basada en la severidad de los hallazgo
 Ejemplo:
 
 ```
-Security Score: 78/100
+SECURITY SCORE: 78/100
 
-Rating:
+STATUS:
 MODERATE
 ```
 
-La puntuación considera:
+Sistema de penalización:
 
 | Severidad | Penalización |
 |-|-|
@@ -175,6 +242,29 @@ La puntuación considera:
 
 ---
 
+# Screenshots
+
+## Main Interface
+
+![Atom Menu](screenshots/menu_inicio.png)
+
+
+## Windows Security Audit
+
+![Windows Audit](screenshots/Ejecucion_windows_auditor.png)
+
+
+## Security Score
+
+![Security Score](screenshots/Security_Score.png)
+
+
+## Security Results
+
+![Results](screenshots/Resultados_windows.png)
+
+---
+
 # Tecnologías utilizadas
 
 - Python 3.x
@@ -183,6 +273,9 @@ La puntuación considera:
 - Git
 - Programación Orientada a Objetos
 - Arquitectura modular
+- Dataclasses
+- JSON Processing
+
 
 ---
 
@@ -206,7 +299,8 @@ Ejecutar:
 python main.py
 ```
 
-> Se requieren privilegios de Administrador en Windows o Root en Linux.
+> Se requieren privilegios Administrator en Windows o Root en Linux.
+
 
 ---
 
@@ -215,14 +309,16 @@ python main.py
 Al iniciar Atom:
 
 ```
-ATOM Security Auditor
+ATOM HARDENING TOOL
 
-1 - System Audit
-2 - File Audit
-3 - SSH Audit
+[1] System Hardening Audit
+[2] Critical File Audit
+[3] SSH Configuration Audit
+[4] Exit
 ```
 
 Seleccionar el módulo deseado y esperar la generación del reporte.
+
 
 ---
 
@@ -231,22 +327,28 @@ Seleccionar el módulo deseado y esperar la generación del reporte.
 ## Completado
 
 - [x] Arquitectura modular
-- [x] Auditoría Windows
-- [x] Auditoría SSH
-- [x] Auditoría de archivos
-- [x] Sistema de Findings
+- [x] Windows Hardening Audit
+- [x] SSH Audit
+- [x] File Permission Audit
+- [x] Finding Object Model
 - [x] Security Score
-- [x] Reportes de consola
+- [x] Security Summary
+- [x] Console Reporter
+- [x] TXT Reporter
+- [x] JSON Reporter
+
 
 ## Próximamente
 
-- [ ] Reportes JSON
 - [ ] Reportes HTML
 - [ ] Tests automatizados
 - [ ] Mapeo CIS Benchmark
+- [ ] Referencias CVE/CIS por hallazgo
 - [ ] Empaquetado ejecutable Windows
 - [ ] Empaquetado ejecutable Linux
 - [ ] Sistema de plugins
+- [ ] Dashboard Web
+
 
 ---
 

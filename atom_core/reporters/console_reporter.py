@@ -1,3 +1,6 @@
+from collections import Counter
+
+
 class ConsoleReporter:
 
 
@@ -5,6 +8,8 @@ class ConsoleReporter:
     RED = "\033[91m"
     YELLOW = "\033[93m"
     CYAN = "\033[96m"
+    BLUE = "\033[94m"
+    WHITE = "\033[97m"
     RESET = "\033[0m"
 
 
@@ -13,59 +18,225 @@ class ConsoleReporter:
     def display(findings):
 
 
-        print(
-            "\n"
-            + "="*60
+        summary = Counter(
+            finding.status.upper()
+            for finding in findings
         )
 
-        print(
-            "              ATOM SECURITY REPORT"
-        )
+
+        score_color = ConsoleReporter.GREEN
+
+
+        if summary.get("FAIL", 0) > 0:
+
+            score_color = ConsoleReporter.RED
+
+
+        elif summary.get("WARNING", 0) > 0:
+
+            score_color = ConsoleReporter.YELLOW
+
+
+
+        print("\n")
+
 
         print(
-            "="*60
+            f"{ConsoleReporter.CYAN}"
+            "=" * 70,
+            f"{ConsoleReporter.RESET}"
         )
+
+
+        print(
+            f"{ConsoleReporter.CYAN}"
+            "                 ATOM SECURITY REPORT"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print(
+            f"{ConsoleReporter.CYAN}"
+            "=" * 70,
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+
+        print()
+
+
+        print(
+            f"{ConsoleReporter.WHITE}"
+            " SECURITY SUMMARY"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print("-" * 70)
+
+
+        print(
+            f" Total Checks : {len(findings)}"
+        )
+
+
+        print(
+            f"{ConsoleReporter.GREEN}"
+            f" PASS         : {summary.get('PASS',0)}"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print(
+            f"{ConsoleReporter.YELLOW}"
+            f" WARNING      : {summary.get('WARNING',0)}"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print(
+            f"{ConsoleReporter.RED}"
+            f" FAIL         : {summary.get('FAIL',0)}"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print(
+            f"{ConsoleReporter.RED}"
+            f" ERROR        : {summary.get('ERROR',0)}"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print("-" * 70)
+
+
+
+        print(
+            f"\n{ConsoleReporter.WHITE}"
+            " SECURITY FINDINGS"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print("-" * 70)
 
 
 
         for finding in findings:
 
 
-            color = ConsoleReporter.GREEN
+            status = finding.status.upper()
 
 
-            if finding.status == "FAIL":
 
-                color = ConsoleReporter.RED
+            if status == "PASS":
+
+                color = ConsoleReporter.GREEN
+                icon = "[+]"
 
 
-            elif finding.status == "WARNING":
+
+            elif status == "WARNING":
 
                 color = ConsoleReporter.YELLOW
+                icon = "[!]"
 
+
+
+            elif status in ["FAIL", "ERROR"]:
+
+                color = ConsoleReporter.RED
+                icon = "[X]"
+
+
+
+            else:
+
+                color = ConsoleReporter.WHITE
+                icon = "[?]"
+
+
+
+
+            print()
 
 
             print(
-                f"\n{color}"
-                f"[{finding.status}] "
-                f"{finding.title}"
+                f"{color}"
+                f"{icon} {finding.title}"
                 f"{ConsoleReporter.RESET}"
             )
 
 
             print(
-                f"Severity : {finding.severity}"
+                f"    Status      : {status}"
             )
 
 
             print(
-                f"Details  : {finding.details}"
+                f"    Severity    : {finding.severity}"
             )
 
 
             print(
-                f"Fix      : {finding.recommendation}"
+                f"    Category    : {finding.category}"
             )
 
 
-            print("-"*60)
+            print(
+                f"    Module      : {finding.module}"
+            )
+
+
+            print(
+                f"    Details     : {finding.details}"
+            )
+
+
+            print(
+                f"    Recommendation:"
+            )
+
+
+            print(
+                f"    -> {finding.recommendation}"
+            )
+
+
+            if finding.reference:
+
+                print(
+                    f"    Reference   : {finding.reference}"
+                )
+
+
+            print(
+                "-" * 70
+            )
+
+
+
+        print()
+
+
+        print(
+            f"{ConsoleReporter.CYAN}"
+            "=" * 70,
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print(
+            f"{score_color}"
+            "        Audit Completed Successfully"
+            f"{ConsoleReporter.RESET}"
+        )
+
+
+        print(
+            f"{ConsoleReporter.CYAN}"
+            "=" * 70,
+            f"{ConsoleReporter.RESET}"
+        )
