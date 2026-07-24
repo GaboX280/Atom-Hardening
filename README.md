@@ -144,10 +144,17 @@ ATOM
 ├── Reporters
 │   ├── ConsoleReporter
 │   ├── TextReporter
-│   └── JSONReporter
+│   ├── JSONReporter
+│   └── HTMLReporter
+├──docs
+│  └─ screenshots
+│    ├── menu_inicio.png
+│    ├── Ejecucion_windows_audit.png
+│    ├── Security_Score.png
+│    ├── Resultados_windows.png
+│    └── html_report.png
 │
 └── Modules
-
     ├── Windows
     │
     ├── Linux
@@ -263,6 +270,25 @@ Sistema de penalización:
 
 ![Results](docs/screenshots/Resultados_windows.png)
 
+## HTML Report
+
+Generación de reportes HTML con interfaz visual para facilitar el análisis de resultados.
+
+Incluye:
+
+- Security Score
+- Resumen general de auditoría
+- Estados PASS / WARNING / FAIL / ERROR
+- Severidad de hallazgos
+- Categorías de seguridad
+- Módulo responsable
+- Recomendaciones
+- Información detallada de cada finding
+
+El reporte puede abrirse directamente desde cualquier navegador sin requerir dependencias adicionales.
+
+![Results](docs/screenshots/html.report.png)
+
 ---
 
 # Tecnologías utilizadas
@@ -275,6 +301,8 @@ Sistema de penalización:
 - Arquitectura modular
 - Dataclasses
 - JSON Processing
+- HTML5
+- CSS
 
 
 ---
@@ -336,11 +364,10 @@ Seleccionar el módulo deseado y esperar la generación del reporte.
 - [x] Console Reporter
 - [x] TXT Reporter
 - [x] JSON Reporter
-
+- [x] Reportes HTML
 
 ## Próximamente
 
-- [ ] Reportes HTML
 - [ ] Tests automatizados
 - [ ] Mapeo CIS Benchmark
 - [ ] Referencias CVE/CIS por hallazgo
