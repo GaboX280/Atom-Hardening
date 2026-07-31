@@ -12,9 +12,9 @@ def audit_firewall(
 
 
 
-    # ==========================
+    # =====================================================
     # UFW
-    # ==========================
+    # =====================================================
 
     if auditor.command_exists("ufw"):
 
@@ -43,7 +43,7 @@ def audit_firewall(
                     "UFW Documentation"
                 ),
                 impact=(
-                    "Filtra conexiones entrantes y reduce superficie de ataque."
+                    "Filtra tráfico entrante y reduce superficie de ataque."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -63,13 +63,13 @@ def audit_firewall(
                     "UFW está instalado pero deshabilitado."
                 ),
                 recommendation=(
-                    "Activar UFW o utilizar otra solución firewall."
+                    "Activar UFW y aplicar política restrictiva."
                 ),
                 reference=(
                     "UFW Documentation"
                 ),
                 impact=(
-                    "El sistema puede aceptar tráfico no filtrado."
+                    "El sistema puede aceptar tráfico no autorizado."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -82,10 +82,9 @@ def audit_firewall(
 
 
 
-    # ==========================
+    # =====================================================
     # Firewalld
-    # ==========================
-
+    # =====================================================
 
     if auditor.command_exists("firewall-cmd"):
 
@@ -96,7 +95,7 @@ def audit_firewall(
 
 
 
-        if "running" in resultado:
+        if resultado.strip() == "running":
 
 
             auditor.add_finding(
@@ -108,13 +107,13 @@ def audit_firewall(
                     "Firewalld está activo."
                 ),
                 recommendation=(
-                    "Mantener reglas actualizadas."
+                    "Mantener zonas y reglas actualizadas."
                 ),
                 reference=(
                     "Firewalld Documentation"
                 ),
                 impact=(
-                    "Controla tráfico mediante zonas y reglas."
+                    "Controla tráfico mediante zonas de seguridad."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -153,10 +152,9 @@ def audit_firewall(
 
 
 
-    # ==========================
+    # =====================================================
     # nftables
-    # ==========================
-
+    # =====================================================
 
     if auditor.command_exists("nft"):
 
@@ -167,7 +165,13 @@ def audit_firewall(
 
 
 
-        if resultado.strip():
+        if (
+            resultado
+            and
+            not resultado.startswith("ERROR")
+            and
+            "table" in resultado
+        ):
 
 
             auditor.add_finding(
@@ -179,13 +183,13 @@ def audit_firewall(
                     "nftables está configurado con reglas activas."
                 ),
                 recommendation=(
-                    "Mantener reglas revisadas periódicamente."
+                    "Realizar auditorías periódicas de reglas."
                 ),
                 reference=(
                     "nftables Documentation"
                 ),
                 impact=(
-                    "Controla tráfico mediante reglas del kernel."
+                    "Controla tráfico mediante filtrado a nivel kernel."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -202,16 +206,16 @@ def audit_firewall(
                 severity="MEDIUM",
                 category="Network Security",
                 details=(
-                    "nftables está instalado pero sin reglas."
+                    "nftables está instalado pero no tiene reglas activas."
                 ),
                 recommendation=(
-                    "Configurar reglas restrictivas."
+                    "Crear reglas restrictivas."
                 ),
                 reference=(
                     "nftables Documentation"
                 ),
                 impact=(
-                    "No existe filtrado efectivo del tráfico."
+                    "El sistema puede carecer de filtrado efectivo."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -224,21 +228,26 @@ def audit_firewall(
 
 
 
-    # ==========================
+    # =====================================================
     # iptables
-    # ==========================
-
+    # =====================================================
 
     if auditor.command_exists("iptables"):
 
 
         resultado = auditor._run_command(
-            "iptables -L"
+            "iptables -L -n"
         )
 
 
 
-        if "ACCEPT" in resultado:
+        if (
+            resultado
+            and
+            not resultado.startswith("ERROR")
+            and
+            "Chain" in resultado
+        ):
 
 
             auditor.add_finding(
@@ -247,16 +256,16 @@ def audit_firewall(
                 severity="MEDIUM",
                 category="Network Security",
                 details=(
-                    "iptables está disponible."
+                    "iptables está configurado."
                 ),
                 recommendation=(
-                    "Revisar reglas configuradas."
+                    "Revisar reglas y migrar a nftables cuando sea posible."
                 ),
                 reference=(
                     "iptables Documentation"
                 ),
                 impact=(
-                    "Una mala configuración puede permitir accesos."
+                    "Una configuración incorrecta puede permitir accesos."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -269,10 +278,9 @@ def audit_firewall(
 
 
 
-    # ==========================
+    # =====================================================
     # Sin firewall
-    # ==========================
-
+    # =====================================================
 
     auditor.add_finding(
         title="Linux Firewall",
