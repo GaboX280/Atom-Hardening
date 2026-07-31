@@ -1,77 +1,42 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_suid(auditor: BaseAuditor):
+def audit_suid(
+    auditor: BaseAuditor
+):
 
 
     auditor.log(
-        "Buscando binarios SUID..."
+        "Evaluando binarios SUID..."
+    )
+
+
+    comando = (
+        "find / "
+        "-perm -4000 "
+        "-type f "
+        "-exec ls -l {} \\; "
+        "2>/dev/null"
     )
 
 
     resultado = auditor._run_command(
-        "find / -perm -4000 -type f 2>/dev/null",
+        comando,
         timeout=30
     )
 
 
-    if resultado.startswith("ERROR"):
+
+    if (
+        resultado.startswith("ERROR")
+        or
+        "Permission denied" in resultado
+    ):
 
 
         auditor.add_finding(
 
             title="SUID Binary Enumeration",
-
-            status="ERROR",
-
-            severity="MEDIUM",
-
-            category="Privilege Management",
-
-            details=(
-
-                "No fue posible completar la búsqueda de "
-                "binarios SUID."
-
-            ),
-
-            recommendation=(
-
-                "Ejecutar la auditoría con permisos adecuados."
-
-            ),
-
-            impact=(
-
-                "No identificar binarios SUID puede ocultar "
-                "posibles vectores de escalamiento de privilegios."
-
-            ),
-
-            compliance=[
-
-                "CIS Linux Benchmark"
-
-            ]
-
-        )
-
-        return
-
-
-
-    if resultado.strip():
-
-
-        binarios = resultado.splitlines()
-
-        cantidad = len(binarios)
-
-
-
-        auditor.add_finding(
-
-            title="SUID Binaries",
 
             status="WARNING",
 
@@ -80,40 +45,77 @@ def audit_suid(auditor: BaseAuditor):
             category="Privilege Management",
 
             details=(
-
-                f"Se encontraron {cantidad} binarios SUID."
-
+                "No fue posible completar la búsqueda "
+                "de binarios SUID completamente."
             ),
 
             recommendation=(
-
-                "Revisar cada binario SUID y eliminar permisos "
-                "innecesarios."
-
+                "Ejecutar Atom con privilegios elevados "
+                "para obtener una auditoría completa."
             ),
 
             reference=(
-
-                "https://man7.org/linux/man-pages/man2/chmod.2.html"
-
+                "https://man7.org/linux/man-pages/man1/find.1.html"
             ),
 
             impact=(
-
-                "Los binarios SUID pueden permitir escalamiento "
-                "de privilegios si contienen vulnerabilidades."
-
+                "Binarios SUID inseguros pueden permitir "
+                "escalación de privilegios."
             ),
 
             compliance=[
-
-                "CIS Linux Benchmark",
-                "NIST SP 800-53 AC-6"
-
+                "CIS Linux Benchmark"
             ]
 
         )
 
+
+        return
+
+
+
+
+    if resultado.strip():
+
+
+        cantidad = len(
+            resultado.splitlines()
+        )
+
+
+        auditor.add_finding(
+
+            title="SUID Binary Enumeration",
+
+            status="WARNING",
+
+            severity="MEDIUM",
+
+            category="Privilege Management",
+
+            details=(
+                f"Se detectaron {cantidad} binarios SUID."
+            ),
+
+            recommendation=(
+                "Revisar binarios SUID innecesarios "
+                "y eliminar permisos privilegiados."
+            ),
+
+            reference=(
+                "https://man7.org/linux/man-pages/man1/find.1.html"
+            ),
+
+            impact=(
+                "Los binarios SUID pueden ser utilizados "
+                "para escalación de privilegios."
+            ),
+
+            compliance=[
+                "CIS Linux Benchmark"
+            ]
+
+        )
 
 
     else:
@@ -121,7 +123,7 @@ def audit_suid(auditor: BaseAuditor):
 
         auditor.add_finding(
 
-            title="SUID Binaries",
+            title="SUID Binary Enumeration",
 
             status="PASS",
 
@@ -130,33 +132,23 @@ def audit_suid(auditor: BaseAuditor):
             category="Privilege Management",
 
             details=(
-
                 "No se detectaron binarios SUID."
-
             ),
 
             recommendation=(
-
-                "Mantener revisión periódica de permisos especiales."
-
+                "Mantener revisiones periódicas."
             ),
 
             reference=(
-
-                "https://man7.org/linux/man-pages/man2/chmod.2.html"
-
+                "https://man7.org/linux/man-pages/man1/find.1.html"
             ),
 
             impact=(
-
-                "Reduce el riesgo de escalamiento de privilegios."
-
+                "No se encontraron superficies SUID adicionales."
             ),
 
             compliance=[
-
                 "CIS Linux Benchmark"
-
             ]
 
         )

@@ -7,31 +7,74 @@ def audit_services(
 
 
     auditor.log(
-        "Evaluando servicios críticos Linux..."
+        f"Evaluando servicios críticos Linux ({auditor.distro})..."
     )
 
 
 
-    servicios = [
+    # =====================================================
+    # Servicios según distribución
+    # =====================================================
 
-        {
-            "name": "cron",
-            "description": "Cron Scheduler"
-        },
+    if auditor.distro in [
+        "debian",
+        "ubuntu"
+    ]:
 
-        {
-            "name": "crond",
-            "description": "Cron Scheduler"
-        },
+        servicios = [
 
-        {
-            "name": "sshd",
-            "description": "SSH Service"
-        }
+            {
+                "name": "cron",
+                "description": "Cron Scheduler"
+            },
 
-    ]
+            {
+                "name": "ssh",
+                "description": "SSH Service"
+            }
+
+        ]
 
 
+
+    elif auditor.distro in [
+        "fedora",
+        "rhel"
+    ]:
+
+        servicios = [
+
+            {
+                "name": "crond",
+                "description": "Cron Scheduler"
+            },
+
+            {
+                "name": "sshd",
+                "description": "SSH Service"
+            }
+
+        ]
+
+
+
+    else:
+
+        servicios = [
+
+            {
+                "name": "sshd",
+                "description": "SSH Service"
+            }
+
+        ]
+
+
+
+
+    # =====================================================
+    # Auditoría de servicios
+    # =====================================================
 
     for servicio in servicios:
 
@@ -52,26 +95,37 @@ def audit_services(
 
 
             auditor.add_finding(
+
                 title=f"Service {descripcion}",
+
                 status="PASS",
+
                 severity="INFO",
+
                 category="Service Management",
+
                 details=(
                     f"El servicio {descripcion} está activo."
                 ),
+
                 recommendation=(
                     "Mantener monitoreo y configuración segura."
                 ),
+
                 reference=(
                     "CIS Linux Benchmark"
                 ),
+
                 impact=(
                     "Los servicios requeridos están funcionando correctamente."
                 ),
+
                 compliance=[
                     "CIS Linux Benchmark"
                 ]
+
             )
+
 
 
 
@@ -79,30 +133,43 @@ def audit_services(
             "not-found" in estado
             or
             "could not be found" in estado
+            or
+            estado.startswith("error")
         ):
 
 
             auditor.add_finding(
+
                 title=f"Service {descripcion}",
+
                 status="INFO",
+
                 severity="LOW",
+
                 category="Service Management",
+
                 details=(
                     f"El servicio {descripcion} no está instalado."
                 ),
+
                 recommendation=(
                     "Verificar si el servicio es requerido."
                 ),
+
                 reference=(
                     "CIS Linux Benchmark"
                 ),
+
                 impact=(
                     "No representa riesgo si el servicio no es necesario."
                 ),
+
                 compliance=[
                     "CIS Linux Benchmark"
                 ]
+
             )
+
 
 
 
@@ -110,23 +177,33 @@ def audit_services(
 
 
             auditor.add_finding(
+
                 title=f"Service {descripcion}",
+
                 status="WARNING",
+
                 severity="MEDIUM",
+
                 category="Service Management",
+
                 details=(
                     f"El servicio {descripcion} no está activo."
                 ),
+
                 recommendation=(
                     "Verificar si debe estar habilitado."
                 ),
+
                 reference=(
                     "CIS Linux Benchmark"
                 ),
+
                 impact=(
                     "Servicios críticos detenidos pueden afectar seguridad o disponibilidad."
                 ),
+
                 compliance=[
                     "CIS Linux Benchmark"
                 ]
+
             )
