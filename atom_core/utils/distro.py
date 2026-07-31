@@ -1,0 +1,28 @@
+def detect_distro(auditor):
+
+    resultado = auditor._run_command(
+        "cat /etc/os-release"
+    ).lower()
+
+
+    if "ubuntu" in resultado:
+        return "ubuntu"
+
+
+    if "debian" in resultado:
+        return "debian"
+
+
+    if "fedora" in resultado:
+        return "fedora"
+
+
+    if "rhel" in resultado or "red hat" in resultado:
+        return "rhel"
+
+
+    if "arch" in resultado:
+        return "arch"
+
+
+    return "unknown"

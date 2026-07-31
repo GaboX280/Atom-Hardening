@@ -19,6 +19,8 @@ class BaseAuditor(ABC):
         self.os_type = platform.system()
 
         self.module_name = self.__class__.__name__
+        
+        self.distro = None
 
 
         self.GREEN = "\033[92m"
@@ -265,10 +267,35 @@ class BaseAuditor(ABC):
 
 
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
 
 
             return f"ERROR: {str(e)}"
+        
+        
+        
+        
+    # =====================================================
+    # SYSTEM UTILITIES
+    # =====================================================
+
+    def command_exists(
+        self,
+        command: str
+    ):
+        """
+        Verifica si un comando existe en el sistema.
+        """
+
+        resultado = self._run_command(
+            f"which {command}"
+        )
+
+        return (
+            resultado != ""
+            and
+            not resultado.startswith("ERROR")
+        )
 
 
 
