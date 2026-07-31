@@ -5,7 +5,6 @@ def audit_suid(
     auditor: BaseAuditor
 ):
 
-
     auditor.log(
         "Evaluando binarios SUID..."
     )
@@ -13,9 +12,9 @@ def audit_suid(
 
     comando = (
         "find / "
+        "-xdev "
         "-perm -4000 "
         "-type f "
-        "-exec ls -l {} \\; "
         "2>/dev/null"
     )
 
@@ -27,11 +26,7 @@ def audit_suid(
 
 
 
-    if (
-        resultado.startswith("ERROR")
-        or
-        "Permission denied" in resultado
-    ):
+    if resultado.startswith("ERROR"):
 
 
         auditor.add_finding(
@@ -45,13 +40,11 @@ def audit_suid(
             category="Privilege Management",
 
             details=(
-                "No fue posible completar la búsqueda "
-                "de binarios SUID completamente."
+                "No fue posible completar la búsqueda SUID."
             ),
 
             recommendation=(
-                "Ejecutar Atom con privilegios elevados "
-                "para obtener una auditoría completa."
+                "Ejecutar Atom con sudo para mayor visibilidad."
             ),
 
             reference=(
@@ -69,56 +62,16 @@ def audit_suid(
 
         )
 
-
         return
 
 
 
 
-    if resultado.strip():
+    binarios = resultado.splitlines()
 
 
-        cantidad = len(
-            resultado.splitlines()
-        )
 
-
-        auditor.add_finding(
-
-            title="SUID Binary Enumeration",
-
-            status="WARNING",
-
-            severity="MEDIUM",
-
-            category="Privilege Management",
-
-            details=(
-                f"Se detectaron {cantidad} binarios SUID."
-            ),
-
-            recommendation=(
-                "Revisar binarios SUID innecesarios "
-                "y eliminar permisos privilegiados."
-            ),
-
-            reference=(
-                "https://man7.org/linux/man-pages/man1/find.1.html"
-            ),
-
-            impact=(
-                "Los binarios SUID pueden ser utilizados "
-                "para escalación de privilegios."
-            ),
-
-            compliance=[
-                "CIS Linux Benchmark"
-            ]
-
-        )
-
-
-    else:
+    if not binarios:
 
 
         auditor.add_finding(
@@ -136,19 +89,143 @@ def audit_suid(
             ),
 
             recommendation=(
-                "Mantener revisiones periódicas."
-            ),
-
-            reference=(
-                "https://man7.org/linux/man-pages/man1/find.1.html"
-            ),
-
-            impact=(
-                "No se encontraron superficies SUID adicionales."
+                "Mantener auditorías periódicas."
             ),
 
             compliance=[
                 "CIS Linux Benchmark"
+            ]
+
+        )
+
+        return
+
+
+
+
+    # Binarios que suelen ser críticos
+    peligrosos = [
+
+        "bash",
+        "sh",
+        "python",
+        "perl",
+        "ruby",
+        "vim",
+        "find",
+        "nmap",
+        "awk"
+
+    ]
+
+
+
+    sospechosos = []
+
+
+    for binario in binarios:
+
+        for peligro in peligrosos:
+
+            if binario.endswith(peligro):
+
+                sospechosos.append(
+                    binario
+                )
+
+
+
+
+    if sospechosos:
+
+
+        auditor.add_finding(
+
+            title="Dangerous SUID Binaries",
+
+            status="FAIL",
+
+            severity="HIGH",
+
+            category="Privilege Management",
+
+            details=(
+
+                "Binarios SUID potencialmente peligrosos: "
+                +
+                ", ".join(sospechosos)
+
+            ),
+
+            recommendation=(
+
+                "Eliminar permisos SUID innecesarios."
+
+            ),
+
+            reference=(
+
+                "Linux Privilege Escalation"
+
+            ),
+
+            impact=(
+
+                "Puede permitir escalación local de privilegios."
+
+            ),
+
+            compliance=[
+
+                "CIS Linux Benchmark"
+
+            ]
+
+        )
+
+
+    else:
+
+
+        auditor.add_finding(
+
+            title="SUID Binary Enumeration",
+
+            status="WARNING",
+
+            severity="LOW",
+
+            category="Privilege Management",
+
+            details=(
+
+                f"Se detectaron {len(binarios)} "
+                "binarios SUID estándar."
+
+            ),
+
+            recommendation=(
+
+                "Revisar periódicamente permisos SUID."
+
+            ),
+
+            reference=(
+
+                "https://man7.org/linux/man-pages/man1/find.1.html"
+
+            ),
+
+            impact=(
+
+                "Los binarios SUID aumentan superficie de ataque."
+
+            ),
+
+            compliance=[
+
+                "CIS Linux Benchmark"
+
             ]
 
         )
