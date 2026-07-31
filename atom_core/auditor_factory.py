@@ -9,7 +9,9 @@ class AuditorFactory:
         tipo="system"
     ):
 
+
         so = platform.system()
+
 
 
         # =========================
@@ -29,7 +31,7 @@ class AuditorFactory:
 
             elif so == "Linux":
 
-                from atom_core.modules.linux.linux_mod import LinuxAuditor
+                from atom_core.modules.linux.auditor import LinuxAuditor
 
                 return LinuxAuditor()
 
