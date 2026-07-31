@@ -23,6 +23,9 @@ def detect_distro(auditor):
 
     if "arch" in resultado:
         return "arch"
+    
+    if "kali" in resultado:
+        return "kali"
 
 
     return "unknown"
