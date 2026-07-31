@@ -8,15 +8,16 @@ from pyfiglet import Figlet
 class AtomInterface:
 
     # ===== Color Theme =====
-    NAVY = "\033[38;5;18m"         # Azul muy oscuro
-    BLUE = "\033[38;5;25m"         # Azul
-    ROYAL = "\033[38;5;33m"        # Azul real
-    SKY = "\033[38;5;39m"          # Azul claro
-    LIGHT = "\033[38;5;45m"        # Celeste
+    NAVY = "\033[38;5;18m"
+    BLUE = "\033[38;5;25m"
+    ROYAL = "\033[38;5;33m"
+    SKY = "\033[38;5;39m"
+    LIGHT = "\033[38;5;45m"
 
     WHITE = "\033[97m"
     RED = "\033[91m"
     RESET = "\033[0m"
+
 
     COLORS = (
         NAVY,
@@ -29,29 +30,82 @@ class AtomInterface:
         BLUE,
     )
 
+
     VERSION = "1.0"
 
+    FONT = "smisome1"
+
+
+
     def __init__(self):
-        self.figlet = Figlet(font="smisome1")
+
+        try:
+
+            self.figlet = Figlet(
+                font=self.FONT
+            )
+
+
+        except Exception:
+
+            self.figlet = Figlet(
+                font="slant"
+            )
+
+
 
     def clear_screen(self):
-        os.system("cls" if os.name == "nt" else "clear")
+
+        os.system(
+            "cls" 
+            if os.name == "nt" 
+            else "clear"
+        )
+
+
 
     def print_gradient(self, text):
 
-        for i, line in enumerate(text.splitlines()):
-            print(self.COLORS[i % len(self.COLORS)] + line)
+        for i, line in enumerate(
+            text.splitlines()
+        ):
 
-        print(self.RESET, end="")
+            print(
+                self.COLORS[
+                    i % len(self.COLORS)
+                ]
+                + line
+            )
+
+
+        print(
+            self.RESET,
+            end=""
+        )
+
+
 
     def divider(self):
-        print(self.ROYAL + "─" * 60 + self.RESET)
+
+        print(
+            self.ROYAL
+            + "─" * 60
+            + self.RESET
+        )
+
+
 
     def show_banner(self):
 
-        logo = self.figlet.renderText("ATOM")
+        logo = self.figlet.renderText(
+            "ATOM"
+        )
 
-        self.print_gradient(logo)
+
+        self.print_gradient(
+            logo
+        )
+
 
         print(
             f"{self.LIGHT}"
@@ -59,7 +113,10 @@ class AtomInterface:
             f"{self.RESET}"
         )
 
+
         self.divider()
+
+
 
     def show_info(self):
 
@@ -70,6 +127,8 @@ class AtomInterface:
             f"{self.RESET}"
         )
 
+
+
     def show_menu(self):
 
         self.clear_screen()
@@ -78,34 +137,61 @@ class AtomInterface:
 
         self.show_info()
 
+
+
         options = (
+
             "System Hardening Audit",
+
             "Critical File Audit",
+
             "SSH Configuration Audit",
+
             "Exit",
+
         )
 
-        for i, option in enumerate(options, start=1):
+
+
+        for i, option in enumerate(
+            options,
+            start=1
+        ):
+
 
             print(
+
                 f"{self.LIGHT}[{i}]"
                 f"{self.WHITE} {option}"
                 f"{self.RESET}"
+
             )
 
+
+
         self.divider()
+
+
 
     def get_choice(self):
 
         try:
+
             return input(
+
                 f"\n{self.SKY}atom>{self.WHITE} "
+
             )
+
 
         except KeyboardInterrupt:
 
+
             print(
+
                 f"\n{self.RED}[!] Exiting Atom...{self.RESET}"
+
             )
+
 
             sys.exit()
