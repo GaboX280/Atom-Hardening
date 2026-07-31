@@ -13,80 +13,42 @@ def audit_firewall(
 
 
     # ==========================
-    # Debian / Ubuntu
+    # UFW
     # ==========================
 
-    if auditor.distro in [
-        "ubuntu",
-        "debian"
-    ]:
+    if auditor.command_exists("ufw"):
 
 
-        if auditor.command_exists(
-            "ufw"
-        ):
-
-
-            resultado = auditor._run_command(
-                "ufw status"
-            ).strip().lower()
+        resultado = auditor._run_command(
+            "ufw status"
+        ).lower()
 
 
 
-            if resultado.startswith(
-                "status: active"
-            ):
+        if "status: active" in resultado:
 
 
-                auditor.add_finding(
-                    title="Linux Firewall UFW",
-                    status="PASS",
-                    severity="INFO",
-                    category="Network Security",
-                    details=(
-                        "UFW está activo."
-                    ),
-                    recommendation=(
-                        "Mantener reglas del firewall actualizadas."
-                    ),
-                    reference=(
-                        "UFW Documentation"
-                    ),
-                    impact=(
-                        "Reduce exposición de servicios no autorizados."
-                    ),
-                    compliance=[
-                        "CIS Ubuntu Linux Benchmark"
-                    ]
-                )
-
-
-
-            else:
-
-
-                auditor.add_finding(
-                    title="Linux Firewall UFW",
-                    status="FAIL",
-                    severity="HIGH",
-                    category="Network Security",
-                    details=(
-                        "UFW está instalado pero deshabilitado."
-                    ),
-                    recommendation=(
-                        "Activar UFW y configurar reglas restrictivas."
-                    ),
-                    reference=(
-                        "UFW Documentation"
-                    ),
-                    impact=(
-                        "El sistema puede aceptar conexiones no autorizadas."
-                    ),
-                    compliance=[
-                        "CIS Ubuntu Linux Benchmark"
-                    ]
-                )
-
+            auditor.add_finding(
+                title="Linux Firewall UFW",
+                status="PASS",
+                severity="INFO",
+                category="Network Security",
+                details=(
+                    "UFW está instalado y activo."
+                ),
+                recommendation=(
+                    "Mantener reglas del firewall actualizadas."
+                ),
+                reference=(
+                    "UFW Documentation"
+                ),
+                impact=(
+                    "Filtra conexiones entrantes y reduce superficie de ataque."
+                ),
+                compliance=[
+                    "CIS Linux Benchmark"
+                ]
+            )
 
 
         else:
@@ -98,16 +60,16 @@ def audit_firewall(
                 severity="MEDIUM",
                 category="Network Security",
                 details=(
-                    "UFW no está instalado."
+                    "UFW está instalado pero deshabilitado."
                 ),
                 recommendation=(
-                    "Instalar UFW o verificar otro firewall activo."
+                    "Activar UFW o utilizar otra solución firewall."
                 ),
                 reference=(
-                    "CIS Linux Benchmark"
+                    "UFW Documentation"
                 ),
                 impact=(
-                    "No se detectó una solución firewall estándar."
+                    "El sistema puede aceptar tráfico no filtrado."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -115,81 +77,49 @@ def audit_firewall(
             )
 
 
+        return
+
+
 
 
     # ==========================
-    # Fedora / RHEL
+    # Firewalld
     # ==========================
 
-    elif auditor.distro in [
-        "fedora",
-        "rhel"
-    ]:
+
+    if auditor.command_exists("firewall-cmd"):
 
 
-        if auditor.command_exists(
-            "firewall-cmd"
-        ):
-
-
-            resultado = auditor._run_command(
-                "firewall-cmd --state"
-            ).strip().lower()
+        resultado = auditor._run_command(
+            "firewall-cmd --state"
+        ).lower()
 
 
 
-            if resultado == "running":
+        if "running" in resultado:
 
 
-                auditor.add_finding(
-                    title="Linux Firewall Firewalld",
-                    status="PASS",
-                    severity="INFO",
-                    category="Network Security",
-                    details=(
-                        "Firewalld está activo."
-                    ),
-                    recommendation=(
-                        "Mantener reglas actualizadas."
-                    ),
-                    reference=(
-                        "Firewalld Documentation"
-                    ),
-                    impact=(
-                        "Controla tráfico entrante y saliente."
-                    ),
-                    compliance=[
-                        "CIS Linux Benchmark"
-                    ]
-                )
-
-
-
-            else:
-
-
-                auditor.add_finding(
-                    title="Linux Firewall Firewalld",
-                    status="FAIL",
-                    severity="HIGH",
-                    category="Network Security",
-                    details=(
-                        "Firewalld está instalado pero detenido."
-                    ),
-                    recommendation=(
-                        "Activar firewalld."
-                    ),
-                    reference=(
-                        "Firewalld Documentation"
-                    ),
-                    impact=(
-                        "El sistema puede quedar expuesto a tráfico no filtrado."
-                    ),
-                    compliance=[
-                        "CIS Linux Benchmark"
-                    ]
-                )
-
+            auditor.add_finding(
+                title="Linux Firewall Firewalld",
+                status="PASS",
+                severity="INFO",
+                category="Network Security",
+                details=(
+                    "Firewalld está activo."
+                ),
+                recommendation=(
+                    "Mantener reglas actualizadas."
+                ),
+                reference=(
+                    "Firewalld Documentation"
+                ),
+                impact=(
+                    "Controla tráfico mediante zonas y reglas."
+                ),
+                compliance=[
+                    "CIS Linux Benchmark"
+                ]
+            )
 
 
         else:
@@ -201,16 +131,16 @@ def audit_firewall(
                 severity="MEDIUM",
                 category="Network Security",
                 details=(
-                    "Firewalld no está instalado."
+                    "Firewalld está instalado pero detenido."
                 ),
                 recommendation=(
-                    "Configurar un firewall compatible."
+                    "Activar firewalld."
                 ),
                 reference=(
-                    "CIS Linux Benchmark"
+                    "Firewalld Documentation"
                 ),
                 impact=(
-                    "Puede existir falta de filtrado de tráfico."
+                    "Puede existir exposición de servicios."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -218,18 +148,52 @@ def audit_firewall(
             )
 
 
+        return
+
+
 
 
     # ==========================
-    # Arch / Otros
+    # nftables
     # ==========================
 
-    else:
+
+    if auditor.command_exists("nft"):
 
 
-        if auditor.command_exists(
-            "nft"
-        ):
+        resultado = auditor._run_command(
+            "nft list ruleset"
+        )
+
+
+
+        if resultado.strip():
+
+
+            auditor.add_finding(
+                title="Linux Firewall nftables",
+                status="PASS",
+                severity="INFO",
+                category="Network Security",
+                details=(
+                    "nftables está configurado con reglas activas."
+                ),
+                recommendation=(
+                    "Mantener reglas revisadas periódicamente."
+                ),
+                reference=(
+                    "nftables Documentation"
+                ),
+                impact=(
+                    "Controla tráfico mediante reglas del kernel."
+                ),
+                compliance=[
+                    "CIS Linux Benchmark"
+                ]
+            )
+
+
+        else:
 
 
             auditor.add_finding(
@@ -238,16 +202,16 @@ def audit_firewall(
                 severity="MEDIUM",
                 category="Network Security",
                 details=(
-                    f"Se detectó nftables en {auditor.distro}."
+                    "nftables está instalado pero sin reglas."
                 ),
                 recommendation=(
-                    "Verificar reglas configuradas."
+                    "Configurar reglas restrictivas."
                 ),
                 reference=(
                     "nftables Documentation"
                 ),
                 impact=(
-                    "Una configuración incorrecta puede exponer servicios."
+                    "No existe filtrado efectivo del tráfico."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -255,10 +219,26 @@ def audit_firewall(
             )
 
 
+        return
 
-        elif auditor.command_exists(
-            "iptables"
-        ):
+
+
+
+    # ==========================
+    # iptables
+    # ==========================
+
+
+    if auditor.command_exists("iptables"):
+
+
+        resultado = auditor._run_command(
+            "iptables -L"
+        )
+
+
+
+        if "ACCEPT" in resultado:
 
 
             auditor.add_finding(
@@ -267,16 +247,16 @@ def audit_firewall(
                 severity="MEDIUM",
                 category="Network Security",
                 details=(
-                    f"Se detectó iptables en {auditor.distro}."
+                    "iptables está disponible."
                 ),
                 recommendation=(
-                    "Revisar reglas activas del firewall."
+                    "Revisar reglas configuradas."
                 ),
                 reference=(
-                    "Linux Firewall Configuration"
+                    "iptables Documentation"
                 ),
                 impact=(
-                    "Reglas incorrectas pueden permitir accesos no autorizados."
+                    "Una mala configuración puede permitir accesos."
                 ),
                 compliance=[
                     "CIS Linux Benchmark"
@@ -284,28 +264,34 @@ def audit_firewall(
             )
 
 
+        return
 
-        else:
 
 
-            auditor.add_finding(
-                title="Linux Firewall",
-                status="FAIL",
-                severity="HIGH",
-                category="Network Security",
-                details=(
-                    "No se detectó firewall compatible."
-                ),
-                recommendation=(
-                    "Configurar un firewall basado en la distribución."
-                ),
-                reference=(
-                    "CIS Linux Benchmark"
-                ),
-                impact=(
-                    "El sistema puede estar expuesto a conexiones no filtradas."
-                ),
-                compliance=[
-                    "CIS Linux Benchmark"
-                ]
-            )
+
+    # ==========================
+    # Sin firewall
+    # ==========================
+
+
+    auditor.add_finding(
+        title="Linux Firewall",
+        status="FAIL",
+        severity="HIGH",
+        category="Network Security",
+        details=(
+            "No se detectó ningún mecanismo firewall."
+        ),
+        recommendation=(
+            "Configurar UFW, firewalld, nftables o iptables."
+        ),
+        reference=(
+            "CIS Linux Benchmark"
+        ),
+        impact=(
+            "El sistema puede estar expuesto a conexiones no filtradas."
+        ),
+        compliance=[
+            "CIS Linux Benchmark"
+        ]
+    )
