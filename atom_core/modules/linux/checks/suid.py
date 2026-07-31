@@ -44,7 +44,7 @@ def audit_suid(
             ),
 
             recommendation=(
-                "Ejecutar Atom con sudo para mayor visibilidad."
+                "Ejecutar Atom con sudo para obtener mayor visibilidad."
             ),
 
             reference=(
@@ -52,8 +52,8 @@ def audit_suid(
             ),
 
             impact=(
-                "Binarios SUID inseguros pueden permitir "
-                "escalación de privilegios."
+                "La falta de visibilidad puede ocultar riesgos "
+                "de escalación de privilegios."
             ),
 
             compliance=[
@@ -66,8 +66,11 @@ def audit_suid(
 
 
 
-
-    binarios = resultado.splitlines()
+    binarios = [
+        x.strip()
+        for x in resultado.splitlines()
+        if x.strip()
+    ]
 
 
 
@@ -85,11 +88,19 @@ def audit_suid(
             category="Privilege Management",
 
             details=(
-                "No se detectaron binarios SUID."
+                "No se detectaron binarios con permisos SUID."
             ),
 
             recommendation=(
                 "Mantener auditorías periódicas."
+            ),
+
+            reference=(
+                "https://man7.org/linux/man-pages/man1/find.1.html"
+            ),
+
+            impact=(
+                "No existen binarios SUID adicionales detectados."
             ),
 
             compliance=[
@@ -102,19 +113,19 @@ def audit_suid(
 
 
 
-
-    # Binarios que suelen ser críticos
+    # Binarios considerados de alto riesgo
     peligrosos = [
 
-        "bash",
-        "sh",
-        "python",
-        "perl",
-        "ruby",
-        "vim",
-        "find",
-        "nmap",
-        "awk"
+        "/bin/bash",
+        "/bin/sh",
+        "/usr/bin/python",
+        "/usr/bin/python3",
+        "/usr/bin/perl",
+        "/usr/bin/ruby",
+        "/usr/bin/vim",
+        "/usr/bin/find",
+        "/usr/bin/nmap",
+        "/usr/bin/awk"
 
     ]
 
@@ -125,14 +136,11 @@ def audit_suid(
 
     for binario in binarios:
 
-        for peligro in peligrosos:
+        if binario in peligrosos:
 
-            if binario.endswith(peligro):
-
-                sospechosos.append(
-                    binario
-                )
-
+            sospechosos.append(
+                binario
+            )
 
 
 
@@ -143,7 +151,7 @@ def audit_suid(
 
             title="Dangerous SUID Binaries",
 
-            status="FAIL",
+            status="WARNING",
 
             severity="HIGH",
 
@@ -151,7 +159,8 @@ def audit_suid(
 
             details=(
 
-                "Binarios SUID potencialmente peligrosos: "
+                "Se detectaron binarios SUID con posible "
+                "capacidad de escalación: "
                 +
                 ", ".join(sospechosos)
 
@@ -159,7 +168,8 @@ def audit_suid(
 
             recommendation=(
 
-                "Eliminar permisos SUID innecesarios."
+                "Revisar si estos binarios requieren permisos SUID "
+                "y eliminarlos si no son necesarios."
 
             ),
 
@@ -171,7 +181,8 @@ def audit_suid(
 
             impact=(
 
-                "Puede permitir escalación local de privilegios."
+                "Un atacante local podría abusar de estos binarios "
+                "para obtener privilegios elevados."
 
             ),
 
@@ -191,22 +202,22 @@ def audit_suid(
 
             title="SUID Binary Enumeration",
 
-            status="WARNING",
+            status="PASS",
 
-            severity="LOW",
+            severity="INFO",
 
             category="Privilege Management",
 
             details=(
 
-                f"Se detectaron {len(binarios)} "
-                "binarios SUID estándar."
+                f"Se detectaron {len(binarios)} binarios SUID "
+                "sin patrones críticos conocidos."
 
             ),
 
             recommendation=(
 
-                "Revisar periódicamente permisos SUID."
+                "Mantener revisión periódica de permisos SUID."
 
             ),
 
@@ -218,7 +229,8 @@ def audit_suid(
 
             impact=(
 
-                "Los binarios SUID aumentan superficie de ataque."
+                "Los permisos SUID existentes parecen corresponder "
+                "a binarios legítimos del sistema."
 
             ),
 
