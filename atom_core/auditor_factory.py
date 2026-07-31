@@ -21,7 +21,7 @@ class AuditorFactory:
 
             if so == "Windows":
 
-                from atom_core.modules.windows.windows_mod import WindowsAuditor
+                from atom_core.modules.windows.auditor import WindowsAuditor
 
                 return WindowsAuditor()
 

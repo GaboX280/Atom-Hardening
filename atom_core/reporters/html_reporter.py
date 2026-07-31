@@ -1,6 +1,6 @@
-import os
 import datetime
 import html
+import os
 
 
 class HTMLReporter:

@@ -1,105 +1,106 @@
 import os
-import sys
 import platform
+import sys
+
+from pyfiglet import Figlet
 
 
 class AtomInterface:
 
+    # ===== Color Theme =====
+    NAVY = "\033[38;5;18m"         # Azul muy oscuro
+    BLUE = "\033[38;5;25m"         # Azul
+    ROYAL = "\033[38;5;33m"        # Azul real
+    SKY = "\033[38;5;39m"          # Azul claro
+    LIGHT = "\033[38;5;45m"        # Celeste
 
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    RESET = '\033[0m'
+    WHITE = "\033[97m"
+    RED = "\033[91m"
+    RESET = "\033[0m"
 
+    COLORS = (
+        NAVY,
+        BLUE,
+        ROYAL,
+        SKY,
+        LIGHT,
+        SKY,
+        ROYAL,
+        BLUE,
+    )
 
     VERSION = "1.0"
 
-
+    def __init__(self):
+        self.figlet = Figlet(font="smisome1")
 
     def clear_screen(self):
+        os.system("cls" if os.name == "nt" else "clear")
 
-        os.system(
-            'cls' if os.name == 'nt' else 'clear'
+    def print_gradient(self, text):
+
+        for i, line in enumerate(text.splitlines()):
+            print(self.COLORS[i % len(self.COLORS)] + line)
+
+        print(self.RESET, end="")
+
+    def divider(self):
+        print(self.ROYAL + "─" * 60 + self.RESET)
+
+    def show_banner(self):
+
+        logo = self.figlet.renderText("ATOM")
+
+        self.print_gradient(logo)
+
+        print(
+            f"{self.LIGHT}"
+            "          Automated Security Hardening Framework"
+            f"{self.RESET}"
         )
 
+        self.divider()
 
+    def show_info(self):
+
+        print(
+            f"{self.WHITE}"
+            f" Version : {self.VERSION}\n"
+            f" Platform: {platform.system()}\n"
+            f"{self.RESET}"
+        )
 
     def show_menu(self):
 
         self.clear_screen()
 
+        self.show_banner()
 
-        print(
-            f"{self.GREEN}"
+        self.show_info()
+
+        options = (
+            "System Hardening Audit",
+            "Critical File Audit",
+            "SSH Configuration Audit",
+            "Exit",
         )
 
-        print(
-            "█████╗ ████████╗ ██████╗ ███╗   ███╗"
-        )
+        for i, option in enumerate(options, start=1):
 
-        print(
-            "██╔══██╗╚══██╔══╝██╔═══██╗████╗ ████║"
-        )
+            print(
+                f"{self.LIGHT}[{i}]"
+                f"{self.WHITE} {option}"
+                f"{self.RESET}"
+            )
 
-        print(
-            "███████║   ██║   ██║   ██║██╔████╔██║"
-        )
-
-        print(
-            "██╔══██║   ██║   ██║   ██║██║╚██╔╝██║"
-        )
-
-        print(
-            "██║  ██║   ██║   ╚██████╔╝██║ ╚═╝ ██║"
-        )
-
-        print(
-            "╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝"
-        )
-
-
-        print(
-            f"""
-{self.RESET}
-        [ Atom Hardening Tool ]
-
-        Version: {self.VERSION}
-        Platform: {platform.system()}
-
-"""
-        )
-
-
-        print("-" * 45)
-
-        print(
-            f"{self.GREEN}[1]{self.RESET} System Hardening Audit"
-        )
-
-        print(
-            f"{self.GREEN}[2]{self.RESET} Critical File Audit"
-        )
-
-        print(
-            f"{self.GREEN}[3]{self.RESET} SSH Configuration Audit"
-        )
-
-        print(
-            f"{self.GREEN}[4]{self.RESET} Exit"
-        )
-
-        print("-" * 45)
-
-
+        self.divider()
 
     def get_choice(self):
 
         try:
-
             return input(
-                f"\n{self.YELLOW}Select option: {self.RESET}"
+                f"\n{self.SKY}atom>{self.WHITE} "
             )
-
 
         except KeyboardInterrupt:
 
@@ -107,4 +108,4 @@ class AtomInterface:
                 f"\n{self.RED}[!] Exiting Atom...{self.RESET}"
             )
 
-            sys.exit(0)
+            sys.exit()

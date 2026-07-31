@@ -42,7 +42,10 @@ class BaseAuditor(ABC):
         details: str = "",
         recommendation: str = "",
         category: str = "General",
-        module: str | None = None
+        module: str | None = None,
+        reference: str = "",
+        impact: str = "",
+        compliance: list[str] | None = None
     ):
 
 
@@ -51,22 +54,15 @@ class BaseAuditor(ABC):
             Finding(
 
                 title=title,
-
                 status=status,
-
                 severity=severity,
-
                 details=details,
-
                 recommendation=recommendation,
-
                 category=category,
-
-                module=(
-                    module
-                    if module
-                    else self.module_name
-                )
+                module=module if module else self.module_name,
+                reference=reference,
+                impact=impact,
+                compliance=[] if compliance is None else compliance
 
             )
 
@@ -113,6 +109,7 @@ class BaseAuditor(ABC):
         print("=" * 45)
 
 
+
     def get_security_summary(self):
 
         score = self.calculate_security_score()
@@ -149,22 +146,17 @@ class BaseAuditor(ABC):
 
         prefix = {
 
-
             "INFO":
                 self.CYAN + "[*]",
-
 
             "OK":
                 self.GREEN + "[+]",
 
-
             "WARN":
                 self.YELLOW + "[!]",
 
-
             "ERROR":
                 self.RED + "[-]"
-
 
         }
 
@@ -304,7 +296,7 @@ class BaseAuditor(ABC):
 
             try:
 
-                check()
+                check(self)
 
 
             except Exception as e:
@@ -344,19 +336,31 @@ class BaseAuditor(ABC):
 
 
     def save_report_to_file(self):
+
         txt = TextReporter.save(
+
             self.get_security_summary(),
+
             self.report
+
         )
-        
+
+
         json = JsonReporter.save(
+
             self.get_security_summary(),
+
             self.report
+
         )
-        
+
+
         return {
+
             "text": txt,
+
             "json": json
+
         }
 
 

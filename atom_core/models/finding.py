@@ -6,7 +6,6 @@ import uuid
 @dataclass
 class Finding:
 
-
     title: str
 
     status: str
@@ -14,6 +13,8 @@ class Finding:
     severity: str
 
     details: str = ""
+
+    impact: str = ""
 
     recommendation: str = ""
 
@@ -23,27 +24,25 @@ class Finding:
 
     reference: str = ""
 
+    compliance: list[str] = field(default_factory=list)
 
+    severity_score: int = 0
 
     finding_id: str = field(
         default_factory=lambda:
-            str(uuid.uuid4())[:8]
+        str(uuid.uuid4())[:8]
     )
-
 
     timestamp: str = field(
         default_factory=lambda:
-            datetime.now(
-                timezone.utc
-            ).isoformat()
+        datetime.now(
+            timezone.utc
+        ).isoformat()
     )
 
 
-
     def to_dict(self):
-
         return asdict(self)
-
 
 
     def __str__(self):
@@ -56,6 +55,7 @@ class Finding:
             f"Category: {self.category}\n"
             f"Module: {self.module}\n"
             f"Details: {self.details}\n"
+            f"Impact: {self.impact}\n"
             f"Recommendation: {self.recommendation}\n"
             f"Reference: {self.reference}\n"
             f"Timestamp: {self.timestamp}\n"
