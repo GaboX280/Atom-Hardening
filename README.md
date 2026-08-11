@@ -166,7 +166,8 @@ python main.py
 | **Audit Execution** | ![Audit](docs/screenshots/Ejecucion_windows_audit.png) |
 | **Security Score** | ![Score](docs/screenshots/Security_Score.png) |
 | **Terminal Summary** | ![Results](docs/screenshots/Resultados_windows.png) |
-| **HTML Web Report** | ![HTML](docs/screenshots/html_report.png) |
+| **Security Report (TXT/JSON)** | ![Report](docs/screenshots/Security_Report.png) |
+| **HTML Web Report** | ![HTML](docs/screenshots/html.report.png) |
 
 ---
 
