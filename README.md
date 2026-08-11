@@ -1,386 +1,195 @@
-# Atom Hardening Tool
+<div align="center">
+  <h1>Atom Hardening Tool</h1>
+  <p><b>Automated Security Auditing Framework for Windows and Linux</b></p>
 
-<p align="center">
-  <b>Automated Security Auditing Framework for Windows and Linux</b>
-</p>
-
-<p align="center">
-  Version: 1.0
-</p>
-
----
-
-# Descripción
-
-**Atom** es una herramienta modular de auditoría y hardening desarrollada en Python orientada a identificar debilidades de configuración en sistemas Windows y Linux.
-
-Su objetivo es analizar configuraciones críticas, generar hallazgos estructurados y proporcionar recomendaciones de seguridad para mejorar la postura del sistema.
-
-Atom utiliza una arquitectura basada en módulos independientes, permitiendo agregar nuevos auditores sin modificar el núcleo principal de la aplicación.
+  [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
+  [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+  [![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
+  [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)]()
+</div>
 
 ---
 
-# Características
+## 1. Overview
 
-## Auditoría de Sistemas
+**Atom** is a mature, modular security auditing and hardening framework engineered to identify configuration weaknesses and systemic vulnerabilities across **Windows** and **Linux** environments.
 
-Evaluación de configuraciones críticas del sistema operativo.
-
-## Windows Hardening Audit
-
-Actualmente incluye:
-
-- Firewall de Windows
-- Windows Defender
-- Políticas de contraseña
-- Cuenta Guest
-- Cuenta Administrator
-- User Account Control (UAC)
-- BitLocker
-- Windows Update
-- PowerShell Execution Policy
-- SMBv1
-- LLMNR
-- Restricciones de acceso anónimo
-- Servicios con superficie de ataque elevada
-- DNS over HTTPS
-
+By performing automated, deep-level configuration analysis, **Atom** generates normalized findings, enforces a structured **Security Score**, and outputs telemetry across multiple analytical formats (Console, TXT, JSON, HTML). The framework operates via an OS-centric module design, executing dynamic security checks dynamically based on the underlying runtime environment.
 
 ---
 
-# Auditoría de Archivos
+## 2. Framework Architecture
 
-Evaluación de protección sobre archivos críticos del sistema:
+The core architecture eliminates fragmented standalone auditors in favor of unified, OS-specific modules. Audits such as **SSH** or **File Security** are injected as abstracted *checks* within their respective OS auditor.
 
-- Permisos NTFS
-- Protección de archivos sensibles
-- Análisis de archivos como:
-  - SAM
-  - Hosts
+### Directory Structure
 
+```text
+ATOM
+├── main.py
+├── AtomInterface
+├── AuditRunner
+├── AuditorFactory
+├── BaseAuditor
+├── Core
+│   ├── SecurityScore
+│   └── SecuritySummary
+├── Models
+│   └── Finding
+├── Reporters
+│   ├── ConsoleReporter
+│   ├── TextReporter
+│   ├── JSONReporter
+│   └── HTMLReporter
+└── Modules
+    ├── Windows
+    │   ├── Auditor
+    │   └── Checks
+    └── Linux
+        ├── Auditor
+        └── Checks
+```
+
+### Execution Pipeline
+
+```text
+[ START ] -> AtomInterface -> main.py -> AuditRunner -> AuditorFactory
+                                                              |
+    +---------------------------------------------------------+
+    |
+    v
+[ OS DETECTED ] -> (WindowsAuditor | LinuxAuditor)
+                         |
+                         v
+                  Security Checks
+                         |
+                         v
+                  Finding Objects
+                         |
+    +--------------------+--------------------+
+    |                                         |
+    v                                         v
+SecurityScore                          SecuritySummary
+    |                                         |
+    +--------------------+--------------------+
+                         |
+                         v
+             (Console | TXT | JSON | HTML)
+```
 
 ---
 
-# Auditoría SSH
+## 3. Auditing Capabilities
 
-Evaluación de configuración y exposición SSH.
+Upon execution, the framework utilizes OS detection to load the corresponding auditor matrix.
 
-Incluye:
+### Supported Security Checks
 
-- Estado del servicio SSH
-- Configuración SSH
-- Root Login
-- Password Authentication
-- Exposición de puertos SSH
-- OpenSSH en Windows
-
+| Category | WindowsAuditor Checks | LinuxAuditor Checks |
+| :--- | :--- | :--- |
+| **System Identity** | Administrator & Guest Accounts | Users and Accounts |
+| **Access Control** | UAC, PowerShell Policy, Passwords | Root Login, Auth Protocols |
+| **Network & Comms** | Windows Firewall, SMBv1, LLMNR | Linux Firewall, Network Services |
+| **Defense Mechanisms** | Windows Defender, BitLocker | System Services |
+| **Configuration** | Updates, DNS over HTTPS | Critical System Configurations |
+| **File Security** | File Security / NTFS Permissions | Sensitive Files, File Permissions |
+| **SSH Sub-system** | SSH Configuration | SSH Service Status & Config |
 
 ---
 
-# Reportes
+## 4. Telemetry and Reporting
 
-Atom genera reportes en múltiples formatos:
+**Atom** generates standardized outputs tailored for rapid tactical response and strategic integration.
 
-## Console Report
+| Reporter Type | Principal Application | Output Features |
+| :--- | :--- | :--- |
+| **Console** | Real-time Operations | Color-coded severity (PASS, FAIL), immediate metric visibility. |
+| **TXT** | Local Logging | Flat-file structure for persistent local auditing logs. |
+| **JSON** | Automation & SIEM | Fully normalized schema designed for API/backend ingestion. |
+| **HTML** | Executive Dashboards | Graphical interface plotting the Security Score and vulnerability matrix. |
 
-Reporte visual en terminal con:
-
-- Estados PASS / WARNING / FAIL
-- Severidad
-- Categorías
-- Recomendaciones
-
-
-## TXT Report
-
-Generación automática de reportes almacenados localmente.
-
-
-## JSON Report
-
-Salida estructurada para integración futura con:
-
-- Dashboards
-- SIEM
-- Sistemas externos de monitoreo
-
-
-Ejemplo:
+### Normalized Finding Schema
 
 ```json
 {
     "title": "Windows Firewall",
     "status": "PASS",
     "severity": "INFO",
-    "module": "WindowsAuditor"
+    "category": "Network Security",
+    "module": "WindowsAuditor",
+    "recommendation": "Maintain the firewall enabled.",
+    "reference": "CIS 1.2",
+    "timestamp": "2026-10-15T10:30:00Z"
 }
 ```
 
 ---
 
-# Arquitectura
+## 5. Security Score Metric
 
-Atom utiliza una arquitectura modular basada en componentes independientes.
+The framework quantifies the system's security posture via a progressive **Security Score** algorithm. Deductions are enforced based on finding severity.
 
-```
-ATOM
+> **SECURITY SCORE: 78/100**  
+> **STATUS: MODERATE**
 
-│
-├── main.py
-│
-├── AuditRunner
-│
-├── AuditorFactory
-│
-├── BaseAuditor
-│
-├── Models
-│   └── Finding
-│
-├── Utils
-│   ├── SecurityScore
-│   └── SecuritySummary
-│
-├── Reporters
-│   ├── ConsoleReporter
-│   ├── TextReporter
-│   ├── JSONReporter
-│   └── HTMLReporter
-├──docs
-│  └─ screenshots
-│    ├── menu_inicio.png
-│    ├── Ejecucion_windows_audit.png
-│    ├── Security_Score.png
-│    ├── Resultados_windows.png
-│    └── html_report.png
-│
-└── Modules
-    ├── Windows
-    │
-    ├── Linux
-    │
-    ├── File Audit
-    │
-    └── SSH
-```
+| Severity Level | Point Deduction |
+| :--- | :--- |
+| **CRITICAL** | - 25 |
+| **HIGH** | - 15 |
+| **MEDIUM** | - 8 |
+| **LOW** | - 3 |
+| **INFO** | 0 |
 
 ---
 
-# Flujo de ejecución
+## 6. Deployment & Execution
 
-```
-Usuario
+### Prerequisites
+- **Windows**: Elevated Privileges (`Administrator`)
+- **Linux**: Root Privileges (`sudo`)
 
-  |
-  v
-
-AuditRunner
-
-  |
-  v
-
-AuditorFactory
-
-  |
-  v
-
-Auditor seleccionado
-
-  |
-  v
-
-Security Checks
-
-  |
-  v
-
-Finding Objects
-
-  |
-  +----------------+
-  |                |
-  v                v
-
-Security       Reporters
-Score
-```
-
----
-
-# Sistema de Findings
-
-Cada hallazgo generado por Atom contiene información estructurada:
-
-| Campo | Descripción |
-|---|---|
-| Title | Nombre del hallazgo |
-| Status | PASS / WARNING / FAIL / ERROR |
-| Severity | Nivel de impacto |
-| Category | Área de seguridad afectada |
-| Module | Auditor responsable |
-| Recommendation | Acción recomendada |
-| Reference | Referencia de seguridad |
-| Timestamp | Fecha de detección |
-
----
-
-# Security Score
-
-Atom calcula una puntuación de seguridad basada en la severidad de los hallazgos encontrados.
-
-Ejemplo:
-
-```
-SECURITY SCORE: 78/100
-
-STATUS:
-MODERATE
-```
-
-Sistema de penalización:
-
-| Severidad | Penalización |
-|-|-|
-| CRITICAL | -25 |
-| HIGH | -15 |
-| MEDIUM | -8 |
-| LOW | -3 |
-| INFO | 0 |
-
----
-
-# Screenshots
-
-## Main Interface
-
-![Atom Menu](docs/screenshots/menu_inicio.png)
-
-
-## Windows Security Audit
-
-![Windows Audit](docs/screenshots/Ejecucion_windows_audit.png)
-
-
-## Security Score
-
-![Security Score](docs/screenshots/Security_Score.png)
-
-
-## Security Results
-
-![Results](docs/screenshots/Resultados_windows.png)
-
-## HTML Report
-
-Generación de reportes HTML con interfaz visual para facilitar el análisis de resultados.
-
-Incluye:
-
-- Security Score
-- Resumen general de auditoría
-- Estados PASS / WARNING / FAIL / ERROR
-- Severidad de hallazgos
-- Categorías de seguridad
-- Módulo responsable
-- Recomendaciones
-- Información detallada de cada finding
-
-El reporte puede abrirse directamente desde cualquier navegador sin requerir dependencias adicionales.
-
-![Results](docs/screenshots/html.report.png)
-
----
-
-# Tecnologías utilizadas
-
-- Python 3.x
-- PowerShell
-- Bash
-- Git
-- Programación Orientada a Objetos
-- Arquitectura modular
-- Dataclasses
-- JSON Processing
-- HTML5
-- CSS
-
-
----
-
-# Instalación
-
-Clonar repositorio:
+### Repository Deployment
 
 ```bash
 git clone https://github.com/GaboX280/Atom-Hardening.git
-```
-
-Entrar al proyecto:
-
-```bash
 cd Atom-Hardening
-```
-
-Ejecutar:
-
-```bash
 python main.py
 ```
 
-> Se requieren privilegios Administrator en Windows o Root en Linux.
+---
 
+## 7. Operational Visualization
+
+| Interface Phase | Preview |
+| :--- | :--- |
+| **Main Interface** | ![Menu](docs/screenshots/menu_inicio.png) |
+| **Audit Execution** | ![Audit](docs/screenshots/Ejecucion_windows_audit.png) |
+| **Security Score** | ![Score](docs/screenshots/Security_Score.png) |
+| **Terminal Summary** | ![Results](docs/screenshots/Resultados_windows.png) |
+| **HTML Web Report** | ![HTML](docs/screenshots/html_report.png) |
 
 ---
 
-# Uso
+## 8. Strategic Roadmap
 
-Al iniciar Atom:
+**Operational Milestones Achieved:**
+- Modular OS-centric architecture deployment.
+- Unified Windows and Linux auditing sub-systems.
+- Automated OS detection and routing.
+- Integration of SSH and File Security as embedded architecture checks.
+- Robust, normalized multi-format reporting (JSON, HTML, etc.).
+- Centralized Data Model (`Finding Object`).
 
-```
-ATOM HARDENING TOOL
-
-[1] System Hardening Audit
-[2] Critical File Audit
-[3] SSH Configuration Audit
-[4] Exit
-```
-
-Seleccionar el módulo deseado y esperar la generación del reporte.
-
-
----
-
-# Roadmap
-
-## Completado
-
-- [x] Arquitectura modular
-- [x] Windows Hardening Audit
-- [x] SSH Audit
-- [x] File Permission Audit
-- [x] Finding Object Model
-- [x] Security Score
-- [x] Security Summary
-- [x] Console Reporter
-- [x] TXT Reporter
-- [x] JSON Reporter
-- [x] Reportes HTML
-
-## Próximamente
-
-- [ ] Tests automatizados
-- [ ] Mapeo CIS Benchmark
-- [ ] Referencias CVE/CIS por hallazgo
-- [ ] Empaquetado ejecutable Windows
-- [ ] Empaquetado ejecutable Linux
-- [ ] Sistema de plugins
-- [ ] Dashboard Web
-
+**Development Pipeline:**
+- CI/CD Automated Testing implementations.
+- CIS Benchmark mapping integration.
+- CVE/CIS cross-referencing for findings.
+- Standalone binary packaging for rapid deployment (Windows & Linux).
+- Web Dashboard expansion.
+- Plugin sub-system integration.
 
 ---
 
-# Disclaimer
+## 9. Disclaimer
 
-Atom es una herramienta desarrollada con fines educativos y de investigación en seguridad informática.
-
-Debe utilizarse únicamente en sistemas propios o con autorización explícita.
+**Atom** is an open-source framework developed exclusively for educational research and authorized security posture assessment. Execution of automated auditing and hardening scripts must be strictly confined to owned infrastructure or environments operating under explicit authorization. The repository maintainer claims no liability for unauthorized deployment.
