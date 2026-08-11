@@ -1,95 +1,75 @@
+'''
+Modulo principal de ATOM. Este módulo contiene la función main() que sirve como punto de entrada para la ejecución del programa. La función main() se encarga de inicializar la interfaz de usuario, manejar el flujo de control del programa y coordinar la ejecución de auditorías según las opciones seleccionadas por el usuario.
+'''
+# Importacion de librerias necesarias
 import os
 import subprocess
-import sys
 
-from atom_core.auditor_factory import AuditorFactory
 from atom_core.interface.interface import AtomInterface
-from atom_core.reporters.console_reporter import ConsoleReporter
 from atom_core.runners.audit_runner import AuditRunner
 
+#=====================================#
+# FUNCION PARA LIMPIAR LA TERMINAL
+#=====================================#
 
 def clear_screen():
 
-    subprocess.run(
+    subprocess.run(  # noqa: PLW1510
         "cls" if os.name == "nt" else "clear",
         shell=True
     )
 
 
-def run_audit(option):
+#=====================================#
 
-    tipos_auditoria = {
+# FUNCION PRINCIPAL DE ATOM
 
-        "1": "system",
-        "2": "file",
-        "3": "ssh"
-
-    }
-
-
-    auditor = AuditorFactory.get_auditor(
-        tipos_auditoria[option]
-    )
-
-
-    resultados = auditor.ejecutar()
-
-
-    if resultados is None:
-
-        print(
-            "\n[!] El auditor no devolvió resultados."
-        )
-
-        return
-
-
-
-    # Mostrar reporte en consola
-    ConsoleReporter.display(
-            resultados
-    )
-
-    # Guardar reporte en archivo
-    archivo = auditor.save_report_to_file()
-
-
-    print(
-        "\n[+] Reporte generado:"
-    )
-
-
-    print(
-        f"    {archivo}"
-    )
-
-
+#=====================================#
 
 def main():
 
+    # Creacion de la interfaz de ATOM.
+
     interface = AtomInterface()
+
+    # Creacion del administrador de auditorias.
+
     runner = AuditRunner()
 
+    # Obtiene las opciones disponibles
+    # desde la interfaz.
+
+    options = interface.get_options()
+
+    # La ultima opcion del menu corresponde
+    # a la salida de ATOM.
+
+    exit_option = str(len(options))
+
+    # ==========================
+    # BUCLE PRINCIPAL
+    # ==========================
 
     while True:
 
+        # Limpia la terminal.
+
         interface.clear_screen()
+
+        # Muestra el menu principal.
 
         interface.show_menu()
 
-        opcion = interface.get_choice()
+        # Obtiene la opcion seleccionada
+        # por el usuario.
 
+        option = interface.get_choice()
 
-        if opcion in {"1","2","3"}:
+        # ==========================
+        # EXIT
+        # ==========================
 
-            runner.run(opcion)
-
-            input(
-                "\nPresiona Enter para regresar..."
-            )
-
-
-        elif opcion == "4":
+        if option == exit_option:
 
             print(
                 "\n[+] Gracias por usar Atom."
@@ -97,8 +77,45 @@ def main():
 
             break
 
+        # ==========================
+        # AUDITORIAS
+        # ==========================
 
+        if option.isdigit():
+
+            option_number = int(option)
+
+            # Verifica que la opcion seleccionada
+            # corresponda a una opcion existente.
+
+            if 1 <= option_number < len(options):
+
+                runner.run(option)
+
+                input(
+                    "\nPresiona Enter para regresar..."
+                )
+
+                continue
+
+        # ==========================
+        # INVALID OPTION
+        # ==========================
+
+        print(
+            "\n[!] Opción inválida."
+        )
+
+        input(
+            "\nPresiona Enter para regresar..."
+        )
+
+
+#=====================================#
+# PUNTO DE ENTRADA DE ATOM
+#=====================================#
 
 if __name__ == "__main__":
 
     main()
+

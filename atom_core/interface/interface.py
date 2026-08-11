@@ -1,13 +1,24 @@
+''' Modulo para la interfaz de usuario de Atom.
+    Proporciona una interfaz de línea de comandos para interactuar con el usuario,
+    mostrar banners, menús y recibir entradas.
+    La interfaz de usuario es responsable de la presentación visual y la interacción
+    con el usuario, mientras que la lógica de auditoría se maneja en otros módulos.
+'''
+# Importacion de librerias necesarias
 import os
 import platform
 import sys
 
 from pyfiglet import Figlet
 
+#=====================================#
+# Clase AtomInterface
+#=====================================#
 
 class AtomInterface:
 
     # ===== Color Theme =====
+
     NAVY = "\033[38;5;18m"
     BLUE = "\033[38;5;25m"
     ROYAL = "\033[38;5;33m"
@@ -17,7 +28,6 @@ class AtomInterface:
     WHITE = "\033[97m"
     RED = "\033[91m"
     RESET = "\033[0m"
-
 
     COLORS = (
         NAVY,
@@ -30,12 +40,17 @@ class AtomInterface:
         BLUE,
     )
 
-
-    VERSION = "1.0"
-
+    VERSION = "1.2.0"
     FONT = "smisome1"
 
+    # ========================
+    # OPCIONES DEL MENU
+    # ========================
 
+    OPTIONS = (
+        "System Hardening Audit",
+        "Exit",
+    )
 
     def __init__(self):
 
@@ -45,24 +60,27 @@ class AtomInterface:
                 font=self.FONT
             )
 
-
-        except Exception:
+        except OSError:
 
             self.figlet = Figlet(
                 font="slant"
             )
 
-
+    # ========================
+    # METODO PARA LIMPIAR PANTALLA
+    # ========================
 
     def clear_screen(self):
 
         os.system(
-            "cls" 
-            if os.name == "nt" 
+            "cls"
+            if os.name == "nt"
             else "clear"
         )
 
-
+    # ========================
+    # METODO PARA MOSTRAR GRADIENTE
+    # ========================
 
     def print_gradient(self, text):
 
@@ -77,13 +95,14 @@ class AtomInterface:
                 + line
             )
 
-
         print(
             self.RESET,
             end=""
         )
 
-
+    # ========================
+    # METODO PARA MOSTRAR DIVISOR
+    # ========================
 
     def divider(self):
 
@@ -93,7 +112,9 @@ class AtomInterface:
             + self.RESET
         )
 
-
+    # ========================
+    # METODO PARA MOSTRAR BANNER
+    # ========================
 
     def show_banner(self):
 
@@ -101,11 +122,9 @@ class AtomInterface:
             "ATOM"
         )
 
-
         self.print_gradient(
             logo
         )
-
 
         print(
             f"{self.LIGHT}"
@@ -113,10 +132,11 @@ class AtomInterface:
             f"{self.RESET}"
         )
 
-
         self.divider()
 
-
+    # ========================
+    # METODO PARA MOSTRAR INFORMACION
+    # ========================
 
     def show_info(self):
 
@@ -127,7 +147,9 @@ class AtomInterface:
             f"{self.RESET}"
         )
 
-
+    # ========================
+    # METODO PARA MOSTRAR MENU
+    # ========================
 
     def show_menu(self):
 
@@ -137,61 +159,45 @@ class AtomInterface:
 
         self.show_info()
 
-
-
-        options = (
-
-            "System Hardening Audit",
-
-            "Critical File Audit",
-
-            "SSH Configuration Audit",
-
-            "Exit",
-
-        )
-
-
-
         for i, option in enumerate(
-            options,
+            self.OPTIONS,
             start=1
         ):
 
-
             print(
-
                 f"{self.LIGHT}[{i}]"
                 f"{self.WHITE} {option}"
                 f"{self.RESET}"
-
             )
-
-
 
         self.divider()
 
+    # ========================
+    # METODO PARA OBTENER OPCIONES
+    # ========================
 
+    def get_options(self):
+
+        return self.OPTIONS
+
+    # ========================
+    # METODO PARA OBTENER OPCION
+    # ========================
 
     def get_choice(self):
 
         try:
 
             return input(
-
                 f"\n{self.SKY}atom>{self.WHITE} "
-
             )
-
 
         except KeyboardInterrupt:
 
-
             print(
-
-                f"\n{self.RED}[!] Exiting Atom...{self.RESET}"
-
+                f"\n{self.RED}"
+                "[!] Exiting Atom..."
+                f"{self.RESET}"
             )
-
 
             sys.exit()

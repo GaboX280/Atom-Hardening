@@ -1,83 +1,50 @@
+''' Modulo para la creación de auditores según el sistema operativo.
+
+    La selección del auditor se realiza automáticamente
+    según el sistema operativo donde se ejecuta ATOM.
+
+    Los checks específicos de cada sistema operativo
+    son responsabilidad de su auditor correspondiente.
+'''
+
+# Importacion de librerias necesarias
+
 import platform
 
+#=====================================#
+# Clase AuditorFactory
+#=====================================#
 
 class AuditorFactory:
 
-
     @staticmethod
-    def get_auditor(
-        tipo="system"
-    ):
-
+    # ========================
+    # METODO PARA OBTENER AUDITOR
+    # ========================
+    def get_auditor():
 
         so = platform.system()
-
-
 
         # =========================
         # AUDITORIA SISTEMA
         # =========================
 
-        if tipo == "system":
+        # Deteccion del sistema operativo y creación del auditor correspondiente.
 
+        if so == "Windows":
+            # Importar el auditor de Windows y devolver una instancia de WindowsAuditor.
+            from atom_core.modules.windows.auditor import WindowsAuditor
 
-            if so == "Windows":
+            return WindowsAuditor()
 
-                from atom_core.modules.windows.auditor import WindowsAuditor
+        elif so == "Linux":
+            # Importar el auditor de Linux y devolver una instancia de LinuxAuditor.
+            from atom_core.modules.linux.auditor import LinuxAuditor
 
-                return WindowsAuditor()
-
-
-
-            elif so == "Linux":
-
-                from atom_core.modules.linux.auditor import LinuxAuditor
-
-                return LinuxAuditor()
-
-
-
-        # =========================
-        # AUDITORIA ARCHIVOS
-        # =========================
-
-        elif tipo == "file":
-
-
-            if so == "Windows":
-
-                from atom_core.modules.windows.file_audit import WindowsFileAuditor
-
-                return WindowsFileAuditor()
-
-
-
-            elif so == "Linux":
-
-                from atom_core.modules.linux.file_audit import LinuxFileAuditor
-
-                return LinuxFileAuditor()
-
-
-
-
-        # =========================
-        # SSH
-        # =========================
-
-        elif tipo == "ssh":
-
-
-            from atom_core.modules.ssh.ssh_audit import SSHAuditor
-
-            return SSHAuditor()
-
-
-
+            return LinuxAuditor()
 
         raise NotImplementedError(
-
-            f"No hay auditor disponible para "
-            f"tipo='{tipo}' sistema='{so}'"
-
+            # En caso de error devolver la falla de compatibilidad.
+            f"No hay auditor disponible "
+            f"para sistema='{so}'"
         )
