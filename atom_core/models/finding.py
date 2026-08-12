@@ -5,7 +5,6 @@ import uuid
 
 @dataclass
 class Finding:
-
     title: str
 
     status: str
@@ -28,22 +27,14 @@ class Finding:
 
     severity_score: int = 0
 
-    finding_id: str = field(
-        default_factory=lambda:
-        str(uuid.uuid4())[:8]
-    )
+    finding_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
 
     timestamp: str = field(
-        default_factory=lambda:
-        datetime.now(
-            timezone.utc
-        ).isoformat()
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
-
 
     def to_dict(self):
         return asdict(self)
-
 
     def __str__(self):
 

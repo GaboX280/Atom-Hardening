@@ -4,148 +4,66 @@ import os
 
 
 class HTMLReporter:
-
-
     @staticmethod
-    def save(
-        summary: dict,
-        findings: list
-    ):
-
+    def save(summary: dict, findings: list):
 
         folder = HTMLReporter._get_report_folder()
 
+        filename = HTMLReporter._generate_filename(folder)
 
-        filename = HTMLReporter._generate_filename(
-            folder
-        )
+        content = HTMLReporter._build_html(summary, findings)
 
-
-        content = HTMLReporter._build_html(
-            summary,
-            findings
-        )
-
-
-        with open(
-            filename,
-            "w",
-            encoding="utf-8"
-        ) as file:
-
+        with open(filename, "w", encoding="utf-8") as file:
             file.write(content)
 
-
         return filename
-
-
-
 
     # ==================================
     # PATH
     # ==================================
 
-
     @staticmethod
     def _get_report_folder():
 
-
         home = os.path.expanduser("~")
 
+        folder = os.path.join(home, "Desktop", "Atom Logs")
 
-        folder = os.path.join(
-
-            home,
-            "Desktop",
-            "Atom Logs"
-
-        )
-
-
-        os.makedirs(
-            folder,
-            exist_ok=True
-        )
-
+        os.makedirs(folder, exist_ok=True)
 
         return folder
-
-
-
 
     @staticmethod
     def _generate_filename(folder):
 
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        timestamp = datetime.datetime.now().strftime(
-
-            "%Y%m%d_%H%M%S"
-
-        )
-
-
-        return os.path.join(
-
-            folder,
-            f"reporte_atom_{timestamp}.html"
-
-        )
-
-
-
-
+        return os.path.join(folder, f"reporte_atom_{timestamp}.html")
 
     # ==================================
     # HTML BUILDER
     # ==================================
 
-
     @staticmethod
-    def _build_html(
-        summary,
-        findings
-    ):
+    def _build_html(summary, findings):
 
+        score = summary.get("score", 0)
 
-        score = summary.get(
-            "score",
-            0
-        )
-
-
-        rating = summary.get(
-            "rating",
-            "UNKNOWN"
-        )
-
-
+        rating = summary.get("rating", "UNKNOWN")
 
         rows = ""
 
-
-
         for finding in findings:
-
-
             status = finding.status.upper()
 
-
-
             if status == "PASS":
-
                 color = "#22c55e"
 
-
             elif status == "WARNING":
-
                 color = "#eab308"
 
-
             else:
-
                 color = "#ef4444"
-
-
 
             rows += f"""
 
@@ -179,9 +97,6 @@ class HTMLReporter:
             </tr>
 
             """
-
-
-
 
         return f"""
 
@@ -345,27 +260,27 @@ Summary
 
 <p>
 Total Findings:
-{summary.get("total",0)}
+{summary.get("total", 0)}
 </p>
 
 
 <p>
 PASS:
-{summary.get("status",{}).get("PASS",0)}
+{summary.get("status", {}).get("PASS", 0)}
 
 </p>
 
 
 <p>
 WARNING:
-{summary.get("status",{}).get("WARNING",0)}
+{summary.get("status", {}).get("WARNING", 0)}
 
 </p>
 
 
 <p>
 FAIL:
-{summary.get("status",{}).get("FAIL",0)}
+{summary.get("status", {}).get("FAIL", 0)}
 
 </p>
 

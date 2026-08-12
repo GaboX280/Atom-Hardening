@@ -10,18 +10,14 @@ from atom_core.reporters.text_reporter import TextReporter
 
 
 class BaseAuditor(ABC):
-
-
-    def __init__(self):
-
+    def __init__(self) -> None: # [TYPING ADDED] -> None
         self.report: list[Finding] = []
 
         self.os_type = platform.system()
 
         self.module_name = self.__class__.__name__
-        
-        self.distro = None
 
+        self.distro = None
 
         self.GREEN = "\033[92m"
         self.RED = "\033[91m"
@@ -29,12 +25,9 @@ class BaseAuditor(ABC):
         self.YELLOW = "\033[93m"
         self.RESET = "\033[0m"
 
-
-
     # =====================================================
     # FINDINGS
     # =====================================================
-
 
     def add_finding(
         self,
@@ -47,14 +40,11 @@ class BaseAuditor(ABC):
         module: str | None = None,
         reference: str = "",
         impact: str = "",
-        compliance: list[str] | None = None
-    ):
-
+        compliance: list[str] | None = None,
+    ) -> None: # [TYPING ADDED] -> None
 
         self.report.append(
-
             Finding(
-
                 title=title,
                 status=status,
                 severity=severity,
@@ -64,42 +54,27 @@ class BaseAuditor(ABC):
                 module=module if module else self.module_name,
                 reference=reference,
                 impact=impact,
-                compliance=[] if compliance is None else compliance
-
+                compliance=[] if compliance is None else compliance,
             )
-
         )
 
-
-
-    def clear_report(self):
+    def clear_report(self) -> None: # [TYPING ADDED] -> None
 
         self.report.clear()
-
-
 
     # =====================================================
     # SECURITY SCORE
     # =====================================================
 
-    def calculate_security_score(self):
+    def calculate_security_score(self) -> int: # [TYPING ADDED] -> int
 
-        return SecurityScore.calculate(
-            self.report
-        )
+        return SecurityScore.calculate(self.report)
 
+    def get_score_rating(self, score: int) -> str: # [TYPING ADDED] -> str
 
-    def get_score_rating(
-        self,
-        score: int
-    ):
+        return SecurityScore.rating(score)
 
-        return SecurityScore.rating(
-            score
-        )
-
-
-    def print_security_score(self):
+    def print_security_score(self) -> None: # [TYPING ADDED] -> None
 
         score = self.calculate_security_score()
 
@@ -110,15 +85,11 @@ class BaseAuditor(ABC):
         print(f" STATUS: {rating}")
         print("=" * 45)
 
-
-
-    def get_security_summary(self):
+    def get_security_summary(self) -> dict: # [TYPING ADDED] -> dict
 
         score = self.calculate_security_score()
 
-        summary = SecuritySummary.summarize(
-            self.report
-        )
+        summary = SecuritySummary.summarize(self.report)
 
         summary["system"] = self.os_type
 
@@ -126,273 +97,128 @@ class BaseAuditor(ABC):
 
         summary["score"] = score
 
-        summary["rating"] = self.get_score_rating(
-            score
-        )
+        summary["rating"] = self.get_score_rating(score)
 
         return summary
-
-
 
     # =====================================================
     # LOGGING
     # =====================================================
 
-
-    def log(
-        self,
-        message: str,
-        level="INFO"
-    ):
-
+    def log(self, message: str, level: str = "INFO") -> None: # [TYPING ADDED] level: str, -> None
 
         prefix = {
-
-            "INFO":
-                self.CYAN + "[*]",
-
-            "OK":
-                self.GREEN + "[+]",
-
-            "WARN":
-                self.YELLOW + "[!]",
-
-            "ERROR":
-                self.RED + "[-]"
-
+            "INFO": self.CYAN + "[*]",
+            "OK": self.GREEN + "[+]",
+            "WARN": self.YELLOW + "[!]",
+            "ERROR": self.RED + "[-]",
         }
 
-
-        print(
-
-            f"{prefix.get(level,self.CYAN+'[*]')}"
-            f"{self.RESET} {message}"
-
-        )
-
-
+        print(f"{prefix.get(level, self.CYAN + '[*]')}{self.RESET} {message}")
 
     # =====================================================
     # COMMAND EXECUTION
     # =====================================================
 
-
-    def _run_command(
-        self,
-        command: str,
-        timeout: int = 10
-    ):
-
+    def _run_command(self, command: str | list[str], timeout: int = 10) -> str: # [TYPING ADDED] -> str
 
         try:
-
-
             flags = 0
 
-
             if self.os_type == "Windows":
-
                 flags = subprocess.CREATE_NO_WINDOW
 
-
+            use_shell = isinstance(command, str)
 
             process = subprocess.Popen(
-
                 command,
-
-                shell=True,
-
+                shell=use_shell,
                 stdout=subprocess.PIPE,
-
                 stderr=subprocess.PIPE,
-
                 text=True,
-
-                creationflags=flags
-
+                creationflags=flags,
             )
 
-
-
             try:
-
-                stdout, stderr = process.communicate(
-                    timeout=timeout
-                )
-
+                stdout, stderr = process.communicate(timeout=timeout)
 
             except subprocess.TimeoutExpired:
-
-
                 process.kill()
 
                 process.communicate()
 
-
                 return "ERROR: COMMAND_TIMEOUT"
-
-
 
             stdout = stdout.strip()
 
             stderr = stderr.strip()
 
-
-
             if process.returncode != 0:
-
-
                 return (
-
                     f"ERROR: {stderr}"
-
                     if stderr
-
-                    else
-
-                    f"ERROR: COMMAND_FAILED ({process.returncode})"
-
+                    else f"ERROR: COMMAND_FAILED ({process.returncode})"
                 )
-
-
 
             return stdout
 
-
-
         except PermissionError:
-
-
             return "ERROR: ACCESS_DENIED"
 
-
-
         except Exception as e:  # noqa: BLE001
-
-
             return f"ERROR: {str(e)}"
-        
-        
-        
-        
+
     # =====================================================
     # SYSTEM UTILITIES
     # =====================================================
 
-    def command_exists(
-        self,
-        command: str
-    ):
+    def command_exists(self, command: str) -> bool: # [TYPING ADDED] -> bool
         """
         Verifica si un comando existe en el sistema.
         """
-
-        resultado = self._run_command(
-            f"which {command}"
-        )
-
-        return (
-            resultado != ""
-            and
-            not resultado.startswith("ERROR")
-        )
-
-
-
+        import shutil
+        return shutil.which(command) is not None
 
     # =====================================================
     # EXECUTION ENGINE
     # =====================================================
 
-
-    def run_checks(
-        self,
-        checks: list,
-        clear: bool = True
-    ):
-
+    def run_checks(self, checks: list, clear: bool = True) -> list[Finding]: # [TYPING ADDED] -> list[Finding]
 
         if clear:
-
             self.clear_report()
 
-
-
         for check in checks:
-
-
             try:
-
                 check(self)
 
-
             except Exception as e:
-
-
                 self.add_finding(
-
                     title=check.__name__,
-
                     status="ERROR",
-
                     severity="HIGH",
-
                     details=str(e),
-
-                    recommendation=(
-                        "Revisar módulo afectado."
-                    ),
-
-                    category="Internal Error"
-
+                    recommendation=("Revisar módulo afectado."),
+                    category="Internal Error",
                 )
-
-
 
         self.print_security_score()
 
-
         return self.report
-
-
-
 
     # =====================================================
     # REPORT
     # =====================================================
 
+    def save_report_to_file(self) -> dict[str, str]: # [TYPING ADDED] -> dict[str, str]
 
-    def save_report_to_file(self):
+        txt = TextReporter.save(self.get_security_summary(), self.report)
 
-        txt = TextReporter.save(
+        json = JsonReporter.save(self.get_security_summary(), self.report)
 
-            self.get_security_summary(),
-
-            self.report
-
-        )
-
-
-        json = JsonReporter.save(
-
-            self.get_security_summary(),
-
-            self.report
-
-        )
-
-
-        return {
-
-            "text": txt,
-
-            "json": json
-
-        }
-
-
+        return {"text": txt, "json": json}
 
     @abstractmethod
-    def ejecutar(self):
+    def ejecutar(self) -> None: # [TYPING ADDED] -> None
 
         pass

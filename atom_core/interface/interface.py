@@ -1,9 +1,10 @@
-''' Modulo para la interfaz de usuario de Atom.
-    Proporciona una interfaz de línea de comandos para interactuar con el usuario,
-    mostrar banners, menús y recibir entradas.
-    La interfaz de usuario es responsable de la presentación visual y la interacción
-    con el usuario, mientras que la lógica de auditoría se maneja en otros módulos.
-'''
+"""Modulo para la interfaz de usuario de Atom.
+Proporciona una interfaz de línea de comandos para interactuar con el usuario,
+mostrar banners, menús y recibir entradas.
+La interfaz de usuario es responsable de la presentación visual y la interacción
+con el usuario, mientras que la lógica de auditoría se maneja en otros módulos.
+"""
+
 # Importacion de librerias necesarias
 import os
 import platform
@@ -11,12 +12,12 @@ import sys
 
 from pyfiglet import Figlet
 
-#=====================================#
+# =====================================#
 # Clase AtomInterface
-#=====================================#
+# =====================================#
+
 
 class AtomInterface:
-
     # ===== Color Theme =====
 
     NAVY = "\033[38;5;18m"
@@ -52,84 +53,53 @@ class AtomInterface:
         "Exit",
     )
 
-    def __init__(self):
+    def __init__(self) -> None: # [TYPING ADDED] -> None
 
         try:
-
-            self.figlet = Figlet(
-                font=self.FONT
-            )
+            self.figlet = Figlet(font=self.FONT)
 
         except OSError:
-
-            self.figlet = Figlet(
-                font="slant"
-            )
+            self.figlet = Figlet(font="slant")
 
     # ========================
     # METODO PARA LIMPIAR PANTALLA
     # ========================
 
-    def clear_screen(self):
+    def clear_screen(self) -> None: # [TYPING ADDED] -> None
 
-        os.system(
-            "cls"
-            if os.name == "nt"
-            else "clear"
-        )
+        os.system("cls" if os.name == "nt" else "clear")
 
     # ========================
     # METODO PARA MOSTRAR GRADIENTE
     # ========================
 
-    def print_gradient(self, text):
+    def print_gradient(self, text: str) -> None: # [TYPING ADDED] -> None
 
-        for i, line in enumerate(
-            text.splitlines()
-        ):
+        for i, line in enumerate(text.splitlines()):
+            print(self.COLORS[i % len(self.COLORS)] + line)
 
-            print(
-                self.COLORS[
-                    i % len(self.COLORS)
-                ]
-                + line
-            )
-
-        print(
-            self.RESET,
-            end=""
-        )
+        print(self.RESET, end="")
 
     # ========================
     # METODO PARA MOSTRAR DIVISOR
     # ========================
 
-    def divider(self):
+    def divider(self) -> None: # [TYPING ADDED] -> None
 
-        print(
-            self.ROYAL
-            + "─" * 60
-            + self.RESET
-        )
+        print(self.ROYAL + "─" * 60 + self.RESET)
 
     # ========================
     # METODO PARA MOSTRAR BANNER
     # ========================
 
-    def show_banner(self):
+    def show_banner(self) -> None: # [TYPING ADDED] -> None
 
-        logo = self.figlet.renderText(
-            "ATOM"
-        )
+        logo = self.figlet.renderText("ATOM")
 
-        self.print_gradient(
-            logo
-        )
+        self.print_gradient(logo)
 
         print(
-            f"{self.LIGHT}"
-            "          Automated Security Hardening Framework"
-            f"{self.RESET}"
+            f"{self.LIGHT}          Automated Security Hardening Framework{self.RESET}"
         )
 
         self.divider()
@@ -138,7 +108,7 @@ class AtomInterface:
     # METODO PARA MOSTRAR INFORMACION
     # ========================
 
-    def show_info(self):
+    def show_info(self) -> None: # [TYPING ADDED] -> None
 
         print(
             f"{self.WHITE}"
@@ -151,7 +121,7 @@ class AtomInterface:
     # METODO PARA MOSTRAR MENU
     # ========================
 
-    def show_menu(self):
+    def show_menu(self) -> None: # [TYPING ADDED] -> None
 
         self.clear_screen()
 
@@ -159,16 +129,8 @@ class AtomInterface:
 
         self.show_info()
 
-        for i, option in enumerate(
-            self.OPTIONS,
-            start=1
-        ):
-
-            print(
-                f"{self.LIGHT}[{i}]"
-                f"{self.WHITE} {option}"
-                f"{self.RESET}"
-            )
+        for i, option in enumerate(self.OPTIONS, start=1):
+            print(f"{self.LIGHT}[{i}]{self.WHITE} {option}{self.RESET}")
 
         self.divider()
 
@@ -176,7 +138,7 @@ class AtomInterface:
     # METODO PARA OBTENER OPCIONES
     # ========================
 
-    def get_options(self):
+    def get_options(self) -> tuple[str, ...]: # [TYPING ADDED] -> tuple[str, ...]
 
         return self.OPTIONS
 
@@ -184,20 +146,12 @@ class AtomInterface:
     # METODO PARA OBTENER OPCION
     # ========================
 
-    def get_choice(self):
+    def get_choice(self) -> str: # [TYPING ADDED] -> str
 
         try:
-
-            return input(
-                f"\n{self.SKY}atom>{self.WHITE} "
-            )
+            return input(f"\n{self.SKY}atom>{self.WHITE} ")
 
         except KeyboardInterrupt:
-
-            print(
-                f"\n{self.RED}"
-                "[!] Exiting Atom..."
-                f"{self.RESET}"
-            )
+            print(f"\n{self.RED}[!] Exiting Atom...{self.RESET}")
 
             sys.exit()

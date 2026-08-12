@@ -1,22 +1,22 @@
-''' Modulo para la creación de auditores según el sistema operativo.
+"""Modulo para la creación de auditores según el sistema operativo.
 
-    La selección del auditor se realiza automáticamente
-    según el sistema operativo donde se ejecuta ATOM.
+La selección del auditor se realiza automáticamente
+según el sistema operativo donde se ejecuta ATOM.
 
-    Los checks específicos de cada sistema operativo
-    son responsabilidad de su auditor correspondiente.
-'''
+Los checks específicos de cada sistema operativo
+son responsabilidad de su auditor correspondiente.
+"""
 
 # Importacion de librerias necesarias
 
 import platform
 
-#=====================================#
+# =====================================#
 # Clase AuditorFactory
-#=====================================#
+# =====================================#
+
 
 class AuditorFactory:
-
     @staticmethod
     # ========================
     # METODO PARA OBTENER AUDITOR
@@ -45,6 +45,5 @@ class AuditorFactory:
 
         raise NotImplementedError(
             # En caso de error devolver la falla de compatibilidad.
-            f"No hay auditor disponible "
-            f"para sistema='{so}'"
+            f"No hay auditor disponible para sistema='{so}'"
         )
