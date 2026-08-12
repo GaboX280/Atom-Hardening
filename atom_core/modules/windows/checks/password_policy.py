@@ -24,7 +24,9 @@ def audit_password_policy(auditor: BaseAuditor) -> None: # [TYPING ADDED]
 
                 break
 
-    if longitud_minima >= 8:
+    target_min_length = auditor.config.get("password_policy", {}).get("min_length", 8)
+
+    if longitud_minima >= target_min_length:
         auditor.add_finding(
             title="Password Policy",
             status="PASS",
@@ -48,7 +50,7 @@ def audit_password_policy(auditor: BaseAuditor) -> None: # [TYPING ADDED]
             category="Identity Management",
             details=(f"Longitud mínima encontrada: {longitud_minima} caracteres."),
             recommendation=(
-                "Configurar una longitud mínima de 8 caracteres o superior."
+                f"Configurar una longitud mínima de {target_min_length} caracteres o superior."
             ),
             reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
             impact=(

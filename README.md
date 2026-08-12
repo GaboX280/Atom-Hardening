@@ -153,7 +153,19 @@ The framework quantifies the system's security posture via a progressive **Secur
 ```bash
 git clone https://github.com/GaboX280/Atom-Hardening.git
 cd Atom-Hardening
-python main.py
+```
+
+### CLI Usage (Subcommand Based)
+
+```bash
+# Run an audit (e.g., audit ID 1) without GUI
+python main.py audit --audit 1 --no-gui
+
+# List available audits
+python main.py list
+
+# Show current configuration
+python main.py config --show
 ```
 
 ---

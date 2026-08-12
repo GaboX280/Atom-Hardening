@@ -1,5 +1,7 @@
 import platform
 import subprocess
+import json
+import os
 from abc import ABC, abstractmethod
 
 from atom_core.core.security_score import SecurityScore
@@ -18,12 +20,29 @@ class BaseAuditor(ABC):
         self.module_name = self.__class__.__name__
 
         self.distro = None
+        
+        self.config: dict = self._load_config()
 
         self.GREEN = "\033[92m"
         self.RED = "\033[91m"
         self.CYAN = "\033[96m"
         self.YELLOW = "\033[93m"
         self.RESET = "\033[0m"
+
+    def _load_config(self) -> dict:
+        config_path = "config.json"
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error loading config.json: {e}. Using defaults.")
+        # Fallback defaults
+        return {
+            "password_policy": {"min_length": 14, "max_age_days": 90},
+            "network": {"allowed_ports": [22, 80, 443]},
+            "reports": {"output_dir": "reports", "format": "json"}
+        }
 
     # =====================================================
     # FINDINGS
