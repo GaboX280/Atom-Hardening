@@ -9,6 +9,9 @@ con el usuario, mientras que la lógica de auditoría se maneja en otros módulo
 import os
 import platform
 import sys
+# Asegurar salida UTF-8 en consolas Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 from pyfiglet import Figlet
 
@@ -18,7 +21,7 @@ from pyfiglet import Figlet
 
 
 class AtomInterface:
-    # ===== Color Theme =====
+    # ===== Tema de Colores =====
 
     NAVY = "\033[38;5;18m"
     BLUE = "\033[38;5;25m"
@@ -53,7 +56,7 @@ class AtomInterface:
         "Exit",
     )
 
-    def __init__(self) -> None: # [TYPING ADDED] -> None
+    def __init__(self) -> None: # [TIPADO AÑADIDO] -> None
 
         try:
             self.figlet = Figlet(font=self.FONT)
@@ -65,7 +68,7 @@ class AtomInterface:
     # METODO PARA LIMPIAR PANTALLA
     # ========================
 
-    def clear_screen(self) -> None: # [TYPING ADDED] -> None
+    def clear_screen(self) -> None: # [TIPADO AÑADIDO] -> None
 
         os.system("cls" if os.name == "nt" else "clear")
 
@@ -73,7 +76,7 @@ class AtomInterface:
     # METODO PARA MOSTRAR GRADIENTE
     # ========================
 
-    def print_gradient(self, text: str) -> None: # [TYPING ADDED] -> None
+    def print_gradient(self, text: str) -> None: # [TIPADO AÑADIDO] -> None
 
         for i, line in enumerate(text.splitlines()):
             print(self.COLORS[i % len(self.COLORS)] + line)
@@ -84,15 +87,15 @@ class AtomInterface:
     # METODO PARA MOSTRAR DIVISOR
     # ========================
 
-    def divider(self) -> None: # [TYPING ADDED] -> None
+    def divider(self) -> None: # [TIPADO AÑADIDO] -> None
 
-        print(self.ROYAL + "─" * 60 + self.RESET)
+        print("-" * 60)
 
     # ========================
     # METODO PARA MOSTRAR BANNER
     # ========================
 
-    def show_banner(self) -> None: # [TYPING ADDED] -> None
+    def show_banner(self) -> None: # [TIPADO AÑADIDO] -> None
 
         logo = self.figlet.renderText("ATOM")
 
@@ -108,7 +111,7 @@ class AtomInterface:
     # METODO PARA MOSTRAR INFORMACION
     # ========================
 
-    def show_info(self) -> None: # [TYPING ADDED] -> None
+    def show_info(self) -> None: # [TIPADO AÑADIDO] -> None
 
         print(
             f"{self.WHITE}"
@@ -121,7 +124,7 @@ class AtomInterface:
     # METODO PARA MOSTRAR MENU
     # ========================
 
-    def show_menu(self) -> None: # [TYPING ADDED] -> None
+    def show_menu(self) -> None: # [TIPADO AÑADIDO] -> None
 
         self.clear_screen()
 
@@ -138,7 +141,7 @@ class AtomInterface:
     # METODO PARA OBTENER OPCIONES
     # ========================
 
-    def get_options(self) -> tuple[str, ...]: # [TYPING ADDED] -> tuple[str, ...]
+    def get_options(self) -> tuple[str, ...]: # [TIPADO AÑADIDO] -> tuple[str, ...]
 
         return self.OPTIONS
 
@@ -146,7 +149,7 @@ class AtomInterface:
     # METODO PARA OBTENER OPCION
     # ========================
 
-    def get_choice(self) -> str: # [TYPING ADDED] -> str
+    def get_choice(self) -> str: # [TIPADO AÑADIDO] -> str
 
         try:
             return input(f"\n{self.SKY}atom>{self.WHITE} ")

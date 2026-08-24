@@ -1,6 +1,6 @@
 from atom_core.base_auditor import BaseAuditor
 
-def detect_distro(auditor: BaseAuditor) -> str: # [TYPING ADDED]
+def detect_distro(auditor: BaseAuditor) -> str: # [TIPADO AÑADIDO]
 
     resultado = auditor._run_command("cat /etc/os-release").lower()
 

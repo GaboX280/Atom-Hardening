@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_failed_logins(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_failed_logins(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando intentos fallidos de autenticación...")
 

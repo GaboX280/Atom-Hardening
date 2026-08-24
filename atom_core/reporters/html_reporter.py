@@ -19,7 +19,7 @@ class HTMLReporter:
         return filename
 
     # ==================================
-    # PATH
+    # RUTA
     # ==================================
 
     @staticmethod
@@ -41,7 +41,7 @@ class HTMLReporter:
         return os.path.join(folder, f"reporte_atom_{timestamp}.html")
 
     # ==================================
-    # HTML BUILDER
+    # CONSTRUCTOR DE HTML
     # ==================================
 
     @staticmethod

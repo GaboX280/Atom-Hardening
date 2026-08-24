@@ -12,7 +12,7 @@ from atom_core.reporters.text_reporter import TextReporter
 
 
 class BaseAuditor(ABC):
-    def __init__(self) -> None: # [TYPING ADDED] -> None
+    def __init__(self) -> None: # [TIPADO AÑADIDO] -> None
         self.report: list[Finding] = []
 
         self.os_type = platform.system()
@@ -45,7 +45,7 @@ class BaseAuditor(ABC):
         }
 
     # =====================================================
-    # FINDINGS
+    # HALLAZGOS
     # =====================================================
 
     def add_finding(
@@ -60,7 +60,7 @@ class BaseAuditor(ABC):
         reference: str = "",
         impact: str = "",
         compliance: list[str] | None = None,
-    ) -> None: # [TYPING ADDED] -> None
+    ) -> None: # [TIPADO AÑADIDO] -> None
 
         self.report.append(
             Finding(
@@ -77,23 +77,23 @@ class BaseAuditor(ABC):
             )
         )
 
-    def clear_report(self) -> None: # [TYPING ADDED] -> None
+    def clear_report(self) -> None: # [TIPADO AÑADIDO] -> None
 
         self.report.clear()
 
     # =====================================================
-    # SECURITY SCORE
+    # PUNTUACIÓN DE SEGURIDAD
     # =====================================================
 
-    def calculate_security_score(self) -> int: # [TYPING ADDED] -> int
+    def calculate_security_score(self) -> int: # [TIPADO AÑADIDO] -> int
 
         return SecurityScore.calculate(self.report)
 
-    def get_score_rating(self, score: int) -> str: # [TYPING ADDED] -> str
+    def get_score_rating(self, score: int) -> str: # [TIPADO AÑADIDO] -> str
 
         return SecurityScore.rating(score)
 
-    def print_security_score(self) -> None: # [TYPING ADDED] -> None
+    def print_security_score(self) -> None: # [TIPADO AÑADIDO] -> None
 
         score = self.calculate_security_score()
 
@@ -104,7 +104,7 @@ class BaseAuditor(ABC):
         print(f" STATUS: {rating}")
         print("=" * 45)
 
-    def get_security_summary(self) -> dict: # [TYPING ADDED] -> dict
+    def get_security_summary(self) -> dict: # [TIPADO AÑADIDO] -> dict
 
         score = self.calculate_security_score()
 
@@ -121,10 +121,10 @@ class BaseAuditor(ABC):
         return summary
 
     # =====================================================
-    # LOGGING
+    # REGISTRO DE LOGS
     # =====================================================
 
-    def log(self, message: str, level: str = "INFO") -> None: # [TYPING ADDED] level: str, -> None
+    def log(self, message: str, level: str = "INFO") -> None: # [TIPADO AÑADIDO] level: str, -> None
 
         prefix = {
             "INFO": self.CYAN + "[*]",
@@ -136,10 +136,10 @@ class BaseAuditor(ABC):
         print(f"{prefix.get(level, self.CYAN + '[*]')}{self.RESET} {message}")
 
     # =====================================================
-    # COMMAND EXECUTION
+    # EJECUCIÓN DE COMANDOS
     # =====================================================
 
-    def _run_command(self, command: str | list[str], timeout: int = 10) -> str: # [TYPING ADDED] -> str
+    def _run_command(self, command: str | list[str], timeout: int = 10) -> str: # [TIPADO AÑADIDO] -> str
 
         try:
             flags = 0
@@ -188,10 +188,10 @@ class BaseAuditor(ABC):
             return f"ERROR: {str(e)}"
 
     # =====================================================
-    # SYSTEM UTILITIES
+    # UTILIDADES DEL SISTEMA
     # =====================================================
 
-    def command_exists(self, command: str) -> bool: # [TYPING ADDED] -> bool
+    def command_exists(self, command: str) -> bool: # [TIPADO AÑADIDO] -> bool
         """
         Verifica si un comando existe en el sistema.
         """
@@ -199,10 +199,10 @@ class BaseAuditor(ABC):
         return shutil.which(command) is not None
 
     # =====================================================
-    # EXECUTION ENGINE
+    # MOTOR DE EJECUCIÓN
     # =====================================================
 
-    def run_checks(self, checks: list, clear: bool = True) -> list[Finding]: # [TYPING ADDED] -> list[Finding]
+    def run_checks(self, checks: list, clear: bool = True) -> list[Finding]: # [TIPADO AÑADIDO] -> list[Finding]
 
         if clear:
             self.clear_report()
@@ -226,10 +226,10 @@ class BaseAuditor(ABC):
         return self.report
 
     # =====================================================
-    # REPORT
+    # REPORTE
     # =====================================================
 
-    def save_report_to_file(self) -> dict[str, str]: # [TYPING ADDED] -> dict[str, str]
+    def save_report_to_file(self) -> dict[str, str]: # [TIPADO AÑADIDO] -> dict[str, str]
 
         txt = TextReporter.save(self.get_security_summary(), self.report)
 
@@ -238,6 +238,6 @@ class BaseAuditor(ABC):
         return {"text": txt, "json": json}
 
     @abstractmethod
-    def ejecutar(self) -> None: # [TYPING ADDED] -> None
+    def ejecutar(self) -> None: # [TIPADO AÑADIDO] -> None
 
         pass

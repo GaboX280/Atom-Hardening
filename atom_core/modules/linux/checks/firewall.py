@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_firewall(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log(f"Evaluando firewall Linux ({auditor.distro})...")
 
@@ -122,7 +122,7 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TYPING ADDED]
         return
 
     # =====================================================
-    # IPTABLES LEGACY
+    # IPTABLES HEREDADO
     # =====================================================
 
     if auditor.command_exists("iptables"):

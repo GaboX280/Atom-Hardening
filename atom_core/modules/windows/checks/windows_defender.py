@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_windows_defender(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_windows_defender(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Comprobando protección de Windows Defender...")
 

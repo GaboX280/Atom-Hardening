@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_smbv1(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_smbv1(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Comprobando configuración SMBv1...")
 

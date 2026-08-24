@@ -44,7 +44,7 @@ class ConsoleReporter:
         ConsoleReporter._line()
 
         # ===============================
-        # SECURITY SCORE
+        # PUNTUACIÓN DE SEGURIDAD
         # ===============================
 
         if score is not None:
@@ -70,7 +70,7 @@ class ConsoleReporter:
             print("-" * 70)
 
         # ===============================
-        # SUMMARY
+        # RESUMEN
         # ===============================
 
         print()
@@ -109,7 +109,7 @@ class ConsoleReporter:
         print("-" * 70)
 
         # ===============================
-        # FINDINGS
+        # HALLAZGOS
         # ===============================
 
         print()
@@ -177,7 +177,7 @@ class ConsoleReporter:
         ConsoleReporter._line()
 
     # ==================================
-    # HELPERS
+    # FUNCIONES AUXILIARES
     # ==================================
 
     @staticmethod

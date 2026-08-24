@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_anonymous_lookup(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_anonymous_lookup(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     """
     Verifica restricciones contra enumeración anónima.
     """

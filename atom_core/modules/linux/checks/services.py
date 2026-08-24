@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_services(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_services(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log(f"Evaluando servicios críticos Linux ({auditor.distro})...")
 

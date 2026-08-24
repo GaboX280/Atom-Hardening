@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_password_policy(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_password_policy(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     """
     Audita la política mínima de contraseñas.
     """

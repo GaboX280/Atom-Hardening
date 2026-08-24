@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_permissions(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_permissions(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando permisos críticos del sistema...")
 

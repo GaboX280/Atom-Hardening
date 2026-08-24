@@ -1,4 +1,4 @@
-# linux/audits/__init__.py
+# Módulo de auditorías de Linux (linux/audits.py)
 
 from .checks.failed_logins import audit_failed_logins
 from .checks.firewall import audit_firewall

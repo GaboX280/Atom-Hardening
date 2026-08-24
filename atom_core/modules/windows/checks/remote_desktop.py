@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_remote_desktop(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_remote_desktop(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando Escritorio Remoto...")
 

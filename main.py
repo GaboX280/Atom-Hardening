@@ -169,7 +169,7 @@ def main():
                     continue
 
             # ==========================
-            # INVALID OPTION
+            # OPCIÓN INVÁLIDA
             # ==========================
 
             print("\n[!] Opción inválida.")

@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_root_accounts(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_root_accounts(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando cuentas con UID 0...")
 

@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_powershell_policy(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_powershell_policy(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando directiva de ejecución de PowerShell...")
 

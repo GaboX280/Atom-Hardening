@@ -23,7 +23,7 @@ class TextReporter:
         return filename
 
     # ==========================================
-    # PATH MANAGEMENT
+    # GESTIÓN DE RUTAS
     # ==========================================
 
     @staticmethod
@@ -45,7 +45,7 @@ class TextReporter:
         return os.path.join(folder, f"reporte_atom_{timestamp}.txt")
 
     # ==========================================
-    # REPORT BUILDERS
+    # CONSTRUCTORES DE REPORTES
     # ==========================================
 
     @staticmethod

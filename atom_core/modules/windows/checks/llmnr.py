@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_llmnr(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_llmnr(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     """
     Verifica si LLMNR está deshabilitado.
     """

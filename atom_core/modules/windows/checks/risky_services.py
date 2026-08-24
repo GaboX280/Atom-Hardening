@@ -1,7 +1,7 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_risky_services(auditor: BaseAuditor) -> None: # [TYPING ADDED]
+def audit_risky_services(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     """
     Detecta servicios con superficie de ataque elevada.
     """
