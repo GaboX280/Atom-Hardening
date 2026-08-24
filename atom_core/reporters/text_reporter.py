@@ -40,7 +40,9 @@ class TextReporter:
     @staticmethod
     def _generate_filename(folder):
 
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y%m%d_%H%M%S"
+        )
 
         return os.path.join(folder, f"reporte_atom_{timestamp}.txt")
 
@@ -57,7 +59,7 @@ class TextReporter:
             f"MODULE: {summary.get('module', 'UNKNOWN')}\n"
             f"SCORE: {summary.get('score', 0)}/100\n"
             f"RATING: {summary.get('rating', 'UNKNOWN')}\n"
-            f"DATE: {datetime.datetime.now()}\n\n"
+            f"DATE: {datetime.datetime.now(datetime.timezone.utc)}\n\n"
         )
 
     @staticmethod

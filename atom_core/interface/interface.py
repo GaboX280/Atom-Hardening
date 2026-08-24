@@ -9,6 +9,7 @@ con el usuario, mientras que la lógica de auditoría se maneja en otros módulo
 import os
 import platform
 import sys
+
 # Asegurar salida UTF-8 en consolas Windows
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")

@@ -1,4 +1,3 @@
-import pytest
 from atom_core.core.security_score import SecurityScore
 from atom_core.models.finding import Finding
 

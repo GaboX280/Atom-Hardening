@@ -3,15 +3,16 @@ Modulo principal de ATOM. Este módulo contiene la función main() que sirve com
 """
 
 # Importacion de librerias necesarias
+import argparse
+
+# =====================================#
+import json
 import os
 import subprocess
-import argparse
 
 from atom_core.interface.interface import AtomInterface
 from atom_core.runners.audit_runner import AuditRunner
 
-# =====================================#
-import json
 
 def load_config() -> dict:
     """Load config.json from project root. Return empty dict if missing."""

@@ -1,6 +1,9 @@
+from typing import ClassVar
+
+
 class SecurityScore:
     # Penalty values per severity (higher penalties for critical findings)
-    PENALTIES = {
+    PENALTIES: ClassVar[dict[str, int]] = {
         "CRITICAL": 60,
         "HIGH": 20,
         "MEDIUM": 15,

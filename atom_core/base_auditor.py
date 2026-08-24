@@ -1,7 +1,7 @@
-import platform
-import subprocess
 import json
 import os
+import platform
+import subprocess
 from abc import ABC, abstractmethod
 
 from atom_core.core.security_score import SecurityScore
@@ -35,7 +35,7 @@ class BaseAuditor(ABC):
             try:
                 with open(config_path, "r", encoding="utf-8") as f:
                     return json.load(f)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(f"Error loading config.json: {e}. Using defaults.")
         # Fallback defaults
         return {
@@ -185,7 +185,7 @@ class BaseAuditor(ABC):
             return "ERROR: ACCESS_DENIED"
 
         except Exception as e:  # noqa: BLE001
-            return f"ERROR: {str(e)}"
+            return f"ERROR: {e!s}"
 
     # =====================================================
     # UTILIDADES DEL SISTEMA
@@ -211,7 +211,7 @@ class BaseAuditor(ABC):
             try:
                 check(self)
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.add_finding(
                     title=check.__name__,
                     status="ERROR",

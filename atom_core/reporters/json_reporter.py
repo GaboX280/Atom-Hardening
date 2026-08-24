@@ -40,6 +40,8 @@ class JsonReporter:
     @staticmethod
     def _generate_filename(folder):
 
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y%m%d_%H%M%S"
+        )
 
         return os.path.join(folder, f"reporte_atom_{timestamp}.json")
