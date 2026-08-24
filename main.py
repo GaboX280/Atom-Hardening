@@ -1,21 +1,23 @@
-"""
-Modulo principal de ATOM. Este módulo contiene la función main() que sirve como punto de entrada para la ejecución del programa. La función main() se encarga de inicializar la interfaz de usuario, manejar el flujo de control del programa y coordinar la ejecución de auditorías según las opciones seleccionadas por el usuario.
+"""Modulo principal de ATOM.
+
+Este módulo contiene la función main() que sirve como punto de entrada
+para la ejecución del programa, soportando modo interactivo y banderas CLI.
 """
 
-# Importacion de librerias necesarias
 import argparse
-
-# =====================================#
 import json
 import os
 import subprocess
+import sys
 
 from atom_core.interface.interface import AtomInterface
 from atom_core.runners.audit_runner import AuditRunner
 
+VERSION = "1.2.0"
+
 
 def load_config() -> dict:
-    """Load config.json from project root. Return empty dict if missing."""
+    """Carga config.json de la raíz del proyecto."""
     cfg_path = os.path.join(os.path.dirname(__file__), "config.json")
     try:
         with open(cfg_path, "r", encoding="utf-8") as f:
@@ -23,167 +25,154 @@ def load_config() -> dict:
     except FileNotFoundError:
         return {}
 
-def cmd_audit(args, interface, runner):
-    """Execute audit based on args. Handles legacy flags as well as sub‑command usage."""
-    if args.audit:
-        if args.no_gui:
-            print(f"[*] Iniciando auditoría {args.audit} en modo silencioso (no-gui)...")
-            runner.run(args.audit)
-        else:
-            interface.clear_screen()
-            interface.show_banner()
-            runner.run(args.audit)
-    else:
-        # Fallback to interactive flow
-        while True:
-            interface.clear_screen()
-            interface.show_menu()
-            option = interface.get_choice()
-            if option.isdigit():
-                option_number = int(option)
-                options = interface.get_options()
-                if 1 <= option_number <= len(options):
-                    selected = options[option_number - 1]
-                    if selected == "Exit":
-                        print("\n[+] Gracias por usar Atom.")
-                        return
-                    runner.run(option)
-                    input("\nPresiona Enter para regresar...")
-                    continue
-            print("\n[!] Opción inválida.")
-            input("\nPresiona Enter para regresar...")
 
-def cmd_list(args, interface, runner):
-    """List available audit options."""
-    options = interface.get_options()
-    print("Opciones de auditoría disponibles:")
-    for idx, opt in enumerate(options, start=1):
-        print(f"  {idx}. {opt}")
-
-def cmd_config(args, interface, runner):
-    """Show configuration content."""
-    cfg = load_config()
-    if not cfg:
-        print("[!] config.json no encontrado o está vacío.")
-    else:
-        print(json.dumps(cfg, indent=4, ensure_ascii=False))
-# FUNCION PARA LIMPIAR LA TERMINAL
-# =====================================#
-
-
-def clear_screen():
-
+def clear_screen() -> None:
+    """Limpia la terminal según el sistema operativo."""
     subprocess.run(  # noqa: PLW1510
         "cls" if os.name == "nt" else "clear", shell=True
     )
 
 
-# =====================================#
-
-# FUNCION PRINCIPAL DE ATOM
-
-# =====================================#
-
-
-def main():
-
-    # Build main parser with sub‑commands
-    parser = argparse.ArgumentParser(description="ATOM - Automated Security Hardening Framework")
-    subparsers = parser.add_subparsers(dest="command", help="Sub‑comandos disponibles")
-
-    # audit subcommand
-    audit_parser = subparsers.add_parser("audit", help="Ejecutar una auditoría (modo automático o interactivo)")
-    audit_parser.add_argument("--audit", type=str, help="Identificador de auditoría específica (p. ej. '1')")
-    audit_parser.add_argument("--no-gui", action="store_true", help="Desactivar la UI interactiva")
-
-    # list subcommand
-    subparsers.add_parser("list", help="Listar todas las auditorías disponibles")
-
-    # config subcommand
-    config_parser = subparsers.add_parser("config", help="Mostrar la configuración actual")
-    config_parser.add_argument("--show", action="store_true", default=True, help="Mostrar config.json (por defecto)")
-
-    # Backward compatibility: allow legacy flags without a sub‑command
-    parser.add_argument("--audit", type=str, help=argparse.SUPPRESS)
-    parser.add_argument("--no-gui", action="store_true", help=argparse.SUPPRESS)
-
-    args = parser.parse_args()
-
-    # Creacion de la interfaz de ATOM.
-
-    interface = AtomInterface()
-
-    # Creacion del administrador de auditorias.
-
-    runner = AuditRunner()
-
-    # Obtiene las opciones disponibles
-    # desde la interfaz.
-
+def interactive_menu(interface: AtomInterface, runner: AuditRunner) -> None:
+    """Bucle principal de la interfaz interactiva."""
     options = interface.get_options()
-
-    # Dispatch sub‑commands
-    if args.command == "audit":
-        cmd_audit(args, interface, runner)
-    elif args.command == "list":
-        cmd_list(args, interface, runner)
-    elif args.command == "config":
-        cmd_config(args, interface, runner)
-    else:
-        # No sub‑command supplied – fallback to legacy interactive flow
-        pass
-
-    # ==========================
-    # BUCLE PRINCIPAL
-    # ==========================
-
     try:
         while True:
-            # Limpia la terminal.
-
             interface.clear_screen()
-
-            # Muestra el menu principal.
-
             interface.show_menu()
-
-            # Obtiene la opcion seleccionada
-            # por el usuario.
 
             option = interface.get_choice()
 
             if option.isdigit():
                 option_number = int(option)
-
                 if 1 <= option_number <= len(options):
                     selected_option = options[option_number - 1]
-
                     if selected_option == "Exit":
                         print("\n[+] Gracias por usar Atom.")
                         break
 
-                    # ==========================
-                    # AUDITORIAS
-                    # ==========================
                     runner.run(option)
                     input("\nPresiona Enter para regresar...")
                     continue
 
-            # ==========================
-            # OPCIÓN INVÁLIDA
-            # ==========================
-
             print("\n[!] Opción inválida.")
-
             input("\nPresiona Enter para regresar...")
-            
+
     except KeyboardInterrupt:
         print("\n\n[+] Saliendo de Atom (Interrumpido).")
 
 
-# =====================================#
-# PUNTO DE ENTRADA DE ATOM
-# =====================================#
+def build_parser() -> argparse.ArgumentParser:
+    """Construye el parseador de argumentos CLI."""
+    parser = argparse.ArgumentParser(
+        description="ATOM - Framework de Auditoría y Hardening de Seguridad Automatizado"
+    )
+
+    parser.add_argument(
+        "-s",
+        "--scan",
+        action="store_true",
+        help="Ejecutar escaneo de auditoría directo sin menú interactivo",
+    )
+    parser.add_argument(
+        "-f",
+        "--format",
+        choices=["all", "json", "html", "text", "txt"],
+        default="all",
+        help="Formato de reporte de salida (all, json, html, text)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directorio personalizado para guardar reportes",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Modo silencioso (suprime banner e impresiones decorativas)",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="store_true",
+        help="Mostrar la versión de ATOM y salir",
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="Subcomandos disponibles")
+
+    # Subcomando audit
+    audit_parser = subparsers.add_parser(
+        "audit", help="Ejecutar auditoría (modo automático o interactivo)"
+    )
+    audit_parser.add_argument(
+        "--audit", type=str, default="1", help="ID de auditoría (por defecto '1')"
+    )
+    audit_parser.add_argument(
+        "--no-gui", action="store_true", help="Desactivar la UI interactiva"
+    )
+
+    # Subcomando list
+    subparsers.add_parser("list", help="Listar opciones de auditoría disponibles")
+
+    # Subcomando config
+    config_parser = subparsers.add_parser(
+        "config", help="Mostrar configuración actual"
+    )
+    config_parser.add_argument(
+        "--show", action="store_true", default=True, help="Mostrar config.json"
+    )
+
+    return parser
+
+
+def main() -> None:
+    """Punto de entrada principal de ATOM."""
+    parser = build_parser()
+    args = parser.parse_args()
+
+    if args.version:
+        print(f"ATOM v{VERSION}")
+        sys.exit(0)
+
+    interface = AtomInterface()
+    runner = AuditRunner()
+
+    # Subcomando list
+    if args.command == "list":
+        print("Opciones de auditoría disponibles:")
+        for idx, opt in enumerate(interface.get_options(), start=1):
+            print(f"  {idx}. {opt}")
+        return
+
+    # Subcomando config
+    if args.command == "config":
+        cfg = load_config()
+        if not cfg:
+            print("[!] config.json no encontrado o está vacío.")
+        else:
+            print(json.dumps(cfg, indent=4, ensure_ascii=False))
+        return
+
+    # Banderas directas o subcomando audit en modo no-gui/scan
+    if args.scan or (args.command == "audit" and getattr(args, "no_gui", False)):
+        if not args.quiet:
+            interface.clear_screen()
+            interface.show_banner()
+            print("[*] Iniciando auditoría automática...")
+        runner.run(
+            option="1",
+            fmt=args.format,
+            output_dir=args.output_dir,
+            quiet=args.quiet,
+        )
+        return
+
+    # Flujo interactivo por defecto
+    interactive_menu(interface, runner)
+
 
 if __name__ == "__main__":
     main()

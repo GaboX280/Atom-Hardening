@@ -31,7 +31,13 @@ class AuditRunner:
     # METODO PARA EJECUTAR AUDITORIA
     # ========================
 
-    def run(self, option):
+    def run(
+        self,
+        option: str = "1",
+        fmt: str = "all",
+        output_dir: str | None = None,
+        quiet: bool = False,
+    ) -> dict[str, str] | None:
 
         # Verifica que la opcion recibida
         # corresponda a una auditoria.
@@ -39,7 +45,7 @@ class AuditRunner:
         if option != "1":
             print("[!] Auditoría inválida")
 
-            return
+            return None
 
         # ==========================
         # CREACION DEL AUDITOR
@@ -65,7 +71,7 @@ class AuditRunner:
         if not findings:
             print("[!] El auditor no devolvió resultados.")
 
-            return
+            return None
 
         # ==========================
         # ANALISIS DE RESULTADOS
@@ -106,9 +112,10 @@ class AuditRunner:
         # ==========================
 
         # Muestra los resultados de la auditoria
-        # directamente en la consola.
+        # directamente en la consola si no está en modo silencioso.
 
-        ConsoleReporter.display(findings, score, rating)
+        if not quiet:
+            ConsoleReporter.display(findings, score, rating)
 
         # ==========================
         # REPORTES EN ARCHIVOS
@@ -117,43 +124,25 @@ class AuditRunner:
         # Diccionario utilizado para almacenar
         # las rutas de los reportes generados.
 
-        reports = {}
+        reports: dict[str, str] = {}
+        target_fmt = fmt.lower()
 
-        # Genera el reporte en formato TXT.
+        if target_fmt in ("all", "text", "txt"):
+            reports["text"] = TextReporter.save(summary, findings, output_dir=output_dir)
 
-        reports["text"] = TextReporter.save(summary, findings)
+        if target_fmt in ("all", "json"):
+            reports["json"] = JsonReporter.save(summary, findings, output_dir=output_dir)
 
-        # Genera el reporte en formato JSON.
-
-        reports["json"] = JsonReporter.save(summary, findings)
-
-        # Genera el reporte en formato HTML.
-
-        reports["html"] = HTMLReporter.save(summary, findings)
+        if target_fmt in ("all", "html"):
+            reports["html"] = HTMLReporter.save(summary, findings, output_dir=output_dir)
 
         # ==========================
         # INFORMACION DE REPORTES
         # ==========================
 
-        # Informa al usuario que los reportes
-        # fueron generados correctamente.
-
-        print("\n[+] Reportes generados:")
-
-        # Muestra la ubicacion del reporte TXT.
-
-        print(f"    TXT : {reports['text']}")
-
-        # Muestra la ubicacion del reporte JSON.
-
-        print(f"    JSON: {reports['json']}")
-
-        # Muestra la ubicacion del reporte HTML.
-
-        print(f"    HTML: {reports['html']}")
-
-        # Devuelve las rutas de los reportes
-        # para que puedan ser utilizadas por
-        # otras partes de ATOM.
+        if not quiet and reports:
+            print("\n[+] Reportes generados:")
+            for r_type, r_path in reports.items():
+                print(f"    {r_type.upper():<4}: {r_path}")
 
         return reports

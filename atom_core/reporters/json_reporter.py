@@ -5,9 +5,9 @@ import os
 
 class JsonReporter:
     @staticmethod
-    def save(summary: dict, findings: list):
+    def save(summary: dict, findings: list, output_dir: str | None = None) -> str:
 
-        folder = JsonReporter._get_report_folder()
+        folder = JsonReporter._get_report_folder(output_dir)
 
         filename = JsonReporter._generate_filename(folder)
 
@@ -26,8 +26,16 @@ class JsonReporter:
 
         return filename
 
+    # ==================================
+    # RUTA
+    # ==================================
+
     @staticmethod
-    def _get_report_folder():
+    def _get_report_folder(output_dir: str | None = None) -> str:
+
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            return output_dir
 
         home = os.path.expanduser("~")
 

@@ -7,9 +7,9 @@ class TextReporter:
         pass
 
     @staticmethod
-    def save(summary: dict, findings: list):
+    def save(summary: dict, findings: list, output_dir: str | None = None) -> str:
 
-        folder = TextReporter._get_report_folder()
+        folder = TextReporter._get_report_folder(output_dir)
 
         filename = TextReporter._generate_filename(folder)
 
@@ -27,7 +27,11 @@ class TextReporter:
     # ==========================================
 
     @staticmethod
-    def _get_report_folder():
+    def _get_report_folder(output_dir: str | None = None) -> str:
+
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            return output_dir
 
         home = os.path.expanduser("~")
 
