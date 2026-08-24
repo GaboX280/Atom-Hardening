@@ -59,11 +59,13 @@ class AtomInterface:
 
     def __init__(self) -> None: # [TIPADO AÑADIDO] -> None
 
-        try:
-            self.figlet = Figlet(font=self.FONT)
-
-        except OSError:
-            self.figlet = Figlet(font="slant")
+        self.figlet = None
+        for font_name in (self.FONT, "slant", "standard"):
+            try:
+                self.figlet = Figlet(font=font_name)
+                break
+            except Exception:  # noqa: BLE001, S112
+                continue
 
     # ========================
     # METODO PARA LIMPIAR PANTALLA
@@ -98,9 +100,23 @@ class AtomInterface:
 
     def show_banner(self) -> None: # [TIPADO AÑADIDO] -> None
 
-        logo = self.figlet.renderText("ATOM")
+        logo_text: str | None = None
+        if self.figlet is not None:
+            try:
+                logo_text = str(self.figlet.renderText("ATOM"))
+            except Exception:  # noqa: BLE001
+                logo_text = None
 
-        self.print_gradient(logo)
+        if not logo_text:
+            logo_text = (
+                "  AAA  TTTTT  OOO  M   M\n"
+                " A   A   T   O   O MM MM\n"
+                " AAAAA   T   O   O M M M\n"
+                " A   A   T   O   O M   M\n"
+                " A   A   T    OOO  M   M\n"
+            )
+
+        self.print_gradient(logo_text)
 
         print(
             f"{self.LIGHT}          Automated Security Hardening Framework{self.RESET}"
