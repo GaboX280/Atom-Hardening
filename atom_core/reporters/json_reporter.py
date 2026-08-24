@@ -13,7 +13,9 @@ class JsonReporter:
 
         data = {
             "report": {
-                "generated": datetime.datetime.now(datetime.UTC).isoformat(),
+                "generated": datetime.datetime.now(
+                    datetime.timezone.utc
+                ).isoformat(),
                 "summary": summary,
                 "findings": [finding.to_dict() for finding in findings],
             }
