@@ -1,1 +1,1 @@
-pytest
+pyfiglet==1.0.4
