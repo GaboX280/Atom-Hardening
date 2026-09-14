@@ -1,8 +1,11 @@
 from typing import ClassVar
 
+from atom_core.models.finding import Finding
+
 
 class SecurityScore:
-    # Penalty values per severity (higher penalties for critical findings)
+    """Calculate a bounded security posture score from normalized findings."""
+
     PENALTIES: ClassVar[dict[str, int]] = {
         "CRITICAL": 60,
         "HIGH": 20,
@@ -11,41 +14,61 @@ class SecurityScore:
         "INFO": 0,
     }
 
-    # ANSI color codes for terminal output
+    RATINGS: ClassVar[tuple[tuple[int, str], ...]] = (
+        (90, "EXCELENTE"),
+        (75, "BUENO"),
+        (50, "MODERADO"),
+        (0, "CRITICO"),
+    )
+
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
     ORANGE = "\033[33m"
     RED = "\033[91m"
     RESET = "\033[0m"
 
-    @staticmethod
-    def calculate(findings):
-        """Calculate a security score based on findings.
+    @classmethod
+    def calculate(cls, findings: list[Finding]) -> int:
+        """Start at 100 and deduct only from actionable non-PASS findings.
 
-        Starts at 100 and subtracts penalties for each finding that is not a PASS.
+        ERROR represents an inability to evaluate a check and therefore does not
+        reduce the security posture score. A positive ``severity_score`` overrides
+        the default severity penalty for findings that need custom weighting.
         """
         score = 100
+
         for finding in findings:
-            if finding.status != "PASS":
-                penalty = SecurityScore.PENALTIES.get(finding.severity.upper(), 5)
-                score -= penalty
-        return max(0, score)
+            if finding.status in {"PASS", "ERROR"}:
+                continue
 
-    @staticmethod
-    def rating(score):
-        """Return a colored Spanish rating string based on the score.
+            penalty = (
+                finding.severity_score
+                if finding.severity_score > 0
+                else cls.PENALTIES[finding.severity]
+            )
+            score -= penalty
 
-        The ranges roughly follow:
-        - 90‑100: EXCELENTE (verde)
-        - 75‑89 : BUENO (amarillo)
-        - 50‑74 : MODERADO (naranja)
-        - 0‑49  : CRITICO (rojo)
-        """
-        if score >= 90:
-            return f"{SecurityScore.GREEN}EXCELENTE (80-100){SecurityScore.RESET}"
-        elif score >= 75:
-            return f"{SecurityScore.YELLOW}BUENO (60-79){SecurityScore.RESET}"
-        elif score >= 50:
-            return f"{SecurityScore.ORANGE}MODERADO (40-59){SecurityScore.RESET}"
-        else:
-            return f"{SecurityScore.RED}CRITICO (0-39){SecurityScore.RESET}"
+        return max(0, min(100, score))
+
+    @classmethod
+    def rating(cls, score: int) -> str:
+        """Return the normalized rating and its canonical score range."""
+        if not 0 <= score <= 100:
+            raise ValueError("score must be between 0 and 100")
+
+        for minimum, label in cls.RATINGS:
+            if score >= minimum:
+                maximum = 100 if minimum == 90 else next(
+                    lower - 1
+                    for lower, _ in cls.RATINGS
+                    if lower < minimum
+                )
+                color = {
+                    "EXCELENTE": cls.GREEN,
+                    "BUENO": cls.YELLOW,
+                    "MODERADO": cls.ORANGE,
+                    "CRITICO": cls.RED,
+                }[label]
+                return f"{color}{label} ({minimum}-{maximum}){cls.RESET}"
+
+        return f"{cls.RED}CRITICO (0-49){cls.RESET}"
