@@ -1,11 +1,12 @@
 from atom_core.base_auditor import BaseAuditor
+from atom_core.models.finding import Finding
 
 
 class DummyAuditor(BaseAuditor):
     """Clase concreta para probar la funcionalidad de BaseAuditor."""
 
-    def ejecutar(self) -> None:
-        pass
+    def ejecutar(self) -> list[Finding]:
+        return []
 
 
 def test_base_auditor_add_and_clear_finding() -> None:
