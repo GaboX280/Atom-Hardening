@@ -1,5 +1,6 @@
 """Terminal interface for Atom."""
 
+import logging
 import os
 import platform
 import sys
@@ -8,6 +9,8 @@ from pyfiglet import Figlet  # type: ignore
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
+
+logger = logging.getLogger(__name__)
 
 
 class AtomInterface:
@@ -33,8 +36,8 @@ class AtomInterface:
             try:
                 self.figlet = Figlet(font=font_name)
                 break
-            except Exception:  # noqa: BLE001
-                continue
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Could not load Figlet font %s: %s", font_name, exc)
 
     def clear_screen(self) -> None:
         os.system("cls" if os.name == "nt" else "clear")
@@ -52,7 +55,8 @@ class AtomInterface:
         if self.figlet is not None:
             try:
                 logo_text = str(self.figlet.renderText("ATOM"))
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Could not render Figlet banner: %s", exc)
                 logo_text = None
 
         if not logo_text:
