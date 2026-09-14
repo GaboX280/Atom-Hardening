@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from typing import ClassVar
 import uuid
 
 
@@ -7,9 +8,15 @@ import uuid
 class Finding:
     """Normalized result produced by an Atom security check."""
 
-    VALID_STATUSES = {"PASS", "WARNING", "FAIL", "ERROR"}
-    VALID_SEVERITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"}
-    VALID_CONFIDENCE = {"HIGH", "MEDIUM", "LOW"}
+    VALID_STATUSES: ClassVar[set[str]] = {"PASS", "WARNING", "FAIL", "ERROR"}
+    VALID_SEVERITIES: ClassVar[set[str]] = {
+        "CRITICAL",
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "INFO",
+    }
+    VALID_CONFIDENCE: ClassVar[set[str]] = {"HIGH", "MEDIUM", "LOW"}
 
     title: str
     status: str
