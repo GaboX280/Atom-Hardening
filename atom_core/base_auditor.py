@@ -153,4 +153,4 @@ class BaseAuditor(ABC):
     @abstractmethod
     def ejecutar(self) -> list[Finding]:
         """Run the platform-specific audit and return its findings."""
-        pass
+        raise NotImplementedError
