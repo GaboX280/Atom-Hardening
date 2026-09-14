@@ -1,5 +1,7 @@
 """Orquestación de auditorías, análisis y generación de reportes."""
 
+from typing import ClassVar
+
 from atom_core.auditor_factory import AuditorFactory
 from atom_core.core.security_score import SecurityScore
 from atom_core.core.security_summary import SecuritySummary
@@ -12,7 +14,7 @@ from atom_core.reporters.text_reporter import TextReporter
 class AuditRunner:
     """Coordinate audit execution and convert findings into reports."""
 
-    VALID_FORMATS = {"all", "json", "html", "text", "txt"}
+    VALID_FORMATS: ClassVar[set[str]] = {"all", "json", "html", "text", "txt"}
 
     def run(
         self,
