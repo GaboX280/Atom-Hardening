@@ -14,13 +14,6 @@ class SecurityScore:
         "INFO": 0,
     }
 
-    RATINGS: ClassVar[tuple[tuple[int, str], ...]] = (
-        (90, "EXCELENTE"),
-        (75, "BUENO"),
-        (50, "MODERADO"),
-        (0, "CRITICO"),
-    )
-
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
     ORANGE = "\033[33m"
@@ -29,11 +22,11 @@ class SecurityScore:
 
     @classmethod
     def calculate(cls, findings: list[Finding]) -> int:
-        """Start at 100 and deduct only from actionable non-PASS findings.
+        """Return a score from 0 to 100 based on actionable findings.
 
-        ERROR represents an inability to evaluate a check and therefore does not
-        reduce the security posture score. A positive ``severity_score`` overrides
-        the default severity penalty for findings that need custom weighting.
+        PASS and ERROR do not reduce the score. ERROR means the check could not
+        evaluate the system and must remain visible in the summary without being
+        treated as a discovered security weakness.
         """
         score = 100
 
@@ -52,23 +45,17 @@ class SecurityScore:
 
     @classmethod
     def rating(cls, score: int) -> str:
-        """Return the normalized rating and its canonical score range."""
+        """Return the canonical rating and the matching score range."""
         if not 0 <= score <= 100:
             raise ValueError("score must be between 0 and 100")
 
-        for minimum, label in cls.RATINGS:
-            if score >= minimum:
-                maximum = 100 if minimum == 90 else next(
-                    lower - 1
-                    for lower, _ in cls.RATINGS
-                    if lower < minimum
-                )
-                color = {
-                    "EXCELENTE": cls.GREEN,
-                    "BUENO": cls.YELLOW,
-                    "MODERADO": cls.ORANGE,
-                    "CRITICO": cls.RED,
-                }[label]
-                return f"{color}{label} ({minimum}-{maximum}){cls.RESET}"
+        if score >= 90:
+            label, minimum, maximum, color = "EXCELENTE", 90, 100, cls.GREEN
+        elif score >= 75:
+            label, minimum, maximum, color = "BUENO", 75, 89, cls.YELLOW
+        elif score >= 50:
+            label, minimum, maximum, color = "MODERADO", 50, 74, cls.ORANGE
+        else:
+            label, minimum, maximum, color = "CRITICO", 0, 49, cls.RED
 
-        return f"{cls.RED}CRITICO (0-49){cls.RESET}"
+        return f"{color}{label} ({minimum}-{maximum}){cls.RESET}"
