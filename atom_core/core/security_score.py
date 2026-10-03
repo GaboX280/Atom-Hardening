@@ -33,19 +33,22 @@ class SecurityScore:
 
     @staticmethod
     def rating(score):
-        """Return a colored Spanish rating string based on the score.
+        """Return a plain Spanish rating string based on the score.
 
-        The ranges roughly follow:
-        - 90‑100: EXCELENTE (verde)
-        - 75‑89 : BUENO (amarillo)
-        - 50‑74 : MODERADO (naranja)
-        - 0‑49  : CRITICO (rojo)
+        Ranges:
+        - 90-100: EXCELENTE
+        - 75-89 : BUENO
+        - 50-74 : MODERADO
+        - 0-49  : CRITICO
+
+        La función devuelve texto sin códigos ANSI para que el valor sea
+        reutilizable en reportes JSON, HTML y otras integraciones.
         """
         if score >= 90:
-            return f"{SecurityScore.GREEN}EXCELENTE (80-100){SecurityScore.RESET}"
+            return "EXCELENTE (90-100)"
         elif score >= 75:
-            return f"{SecurityScore.YELLOW}BUENO (60-79){SecurityScore.RESET}"
+            return "BUENO (75-89)"
         elif score >= 50:
-            return f"{SecurityScore.ORANGE}MODERADO (40-59){SecurityScore.RESET}"
+            return "MODERADO (50-74)"
         else:
-            return f"{SecurityScore.RED}CRITICO (0-39){SecurityScore.RESET}"
+            return "CRITICO (0-49)"
