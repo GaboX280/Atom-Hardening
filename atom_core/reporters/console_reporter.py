@@ -65,7 +65,17 @@ class ConsoleReporter:
             print(f"{score_color}        {score}/100{ConsoleReporter.RESET}")
 
             if rating:
-                print(f"        Rating: {rating}")
+                rating_color = ConsoleReporter.GREEN
+                if score < 50:
+                    rating_color = ConsoleReporter.RED
+                elif score < 75:
+                    rating_color = ConsoleReporter.YELLOW
+                elif score < 90:
+                    rating_color = ConsoleReporter.YELLOW
+
+                print(
+                    f"        Rating: {rating_color}{rating}{ConsoleReporter.RESET}"
+                )
 
             print("-" * 70)
 
