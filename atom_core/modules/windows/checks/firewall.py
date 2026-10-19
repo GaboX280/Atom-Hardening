@@ -9,7 +9,10 @@ def audit_firewall(auditor: BaseAuditor) -> None:
     """Evaluate the state of all Windows Firewall profiles."""
     auditor.log("Evaluando el estado del Firewall de Windows...")
 
-    resultado = auditor._run_command("netsh advfirewall show allprofiles state")
+    _command_result_1 = auditor._run_command("netsh advfirewall show allprofiles state")
+    if auditor._record_command_error(_command_result_1, "Firewall Check"):
+        return
+    resultado = _command_result_1.stdout
 
     if resultado.startswith("ERROR:"):
         auditor.add_finding(
