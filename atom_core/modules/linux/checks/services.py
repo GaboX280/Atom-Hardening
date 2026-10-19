@@ -33,7 +33,10 @@ def audit_services(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
         descripcion = servicio["description"]
 
-        estado = auditor._run_command(f"systemctl is-active {nombre}").strip().lower()
+        _command_result_1 = auditor._run_command(f"systemctl is-active {nombre}").strip().lower()
+        if auditor._record_command_error(_command_result_1, "Linux Service Check"):
+            continue
+        estado = _command_result_1.stdout
 
         if estado == "active":
             auditor.add_finding(
