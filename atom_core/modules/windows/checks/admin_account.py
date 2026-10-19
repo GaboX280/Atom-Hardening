@@ -5,7 +5,10 @@ def audit_admin_account(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando cuenta Administrador...")
 
-    resultado = auditor._run_command(["net", "user", "Administrador"])
+    _command_result_1 = auditor._run_command(["net", "user", "Administrador"])
+    if auditor._record_command_error(_command_result_1, "Admin Account Check"):
+        return
+    resultado = _command_result_1.stdout
 
     resultado_upper = resultado.upper()
 
@@ -15,7 +18,10 @@ def audit_admin_account(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     activa_en = False
     if not activa_es:
-        resultado_en = auditor._run_command(["net", "user", "Administrator"]).upper()
+        _command_result_2 = auditor._run_command(["net", "user", "Administrator"]).upper()
+        if auditor._record_command_error(_command_result_2, "Admin Account Check"):
+            return
+        resultado_en = _command_result_2.stdout
         activa_en = "ACCOUNT ACTIVE" in resultado_en and "YES" in resultado_en
 
     activa = activa_es or activa_en
