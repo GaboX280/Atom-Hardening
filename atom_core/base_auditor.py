@@ -9,7 +9,7 @@ from atom_core.models.finding import Finding
 
 
 class BaseAuditor(ABC):
-    """Shared execution primitives for platform-specific auditors."""
+    """Operaciones compartidas para ejecutar auditorías específicas de cada plataforma."""
 
     def __init__(self) -> None:
         self.report: list[Finding] = []
@@ -18,14 +18,14 @@ class BaseAuditor(ABC):
         self.distro: str | None = None
         self.config: dict = self._load_config()
 
-        self.GREEN = "\033[92m"
-        self.RED = "\033[91m"
-        self.CYAN = "\033[96m"
-        self.YELLOW = "\033[93m"
-        self.RESET = "\033[0m"
+        self.GREEN = "\\033[92m"
+        self.RED = "\\033[91m"
+        self.CYAN = "\\033[96m"
+        self.YELLOW = "\\033[93m"
+        self.RESET = "\\033[0m"
 
     def _load_config(self) -> dict:
-        """Load project configuration, falling back to safe defaults."""
+        """Cargar la configuración del proyecto o utilizar valores predeterminados seguros."""
         config_path = Path(__file__).resolve().parents[1] / "config.json"
         try:
             with config_path.open("r", encoding="utf-8") as file:
@@ -53,7 +53,7 @@ class BaseAuditor(ABC):
         severity_score: int = 0,
         confidence: str = "HIGH",
     ) -> None:
-        """Append a validated, normalized finding to the current report."""
+        """Agregar al informe un hallazgo validado y normalizado."""
         self.report.append(
             Finding(
                 title=title,
@@ -72,9 +72,11 @@ class BaseAuditor(ABC):
         )
 
     def clear_report(self) -> None:
+        """Vaciar la lista de hallazgos del informe actual."""
         self.report.clear()
 
     def log(self, message: str, level: str = "INFO") -> None:
+        """Mostrar un mensaje con un prefijo y un color según su nivel."""
         prefix = {
             "INFO": self.CYAN + "[*]",
             "OK": self.GREEN + "[+]",
@@ -84,7 +86,7 @@ class BaseAuditor(ABC):
         print(f"{prefix.get(level, self.CYAN + '[*]')}{self.RESET} {message}")
 
     def _run_command(self, command: str | list[str], timeout: int = 10) -> str:
-        """Execute a local audit command with a bounded timeout."""
+        """Ejecutar un comando local de auditoría con un tiempo límite."""
         try:
             flags = subprocess.CREATE_NO_WINDOW if self.os_type == "Windows" else 0
             use_shell = isinstance(command, str)
@@ -122,7 +124,7 @@ class BaseAuditor(ABC):
             return f"ERROR: {exc!s}"
 
     def command_exists(self, command: str) -> bool:
-        """Return whether an executable is available on PATH."""
+        """Comprobar si un ejecutable está disponible en la variable PATH."""
         return shutil.which(command) is not None
 
     def run_checks(
@@ -130,14 +132,14 @@ class BaseAuditor(ABC):
         checks: list,
         clear: bool = True,
     ) -> list[Finding]:
-        """Execute checks and convert unexpected exceptions into ERROR findings."""
+        """Ejecutar comprobaciones y registrar como ERROR las excepciones inesperadas."""
         if clear:
             self.clear_report()
 
         for check in checks:
             try:
                 check(self)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001 — se registra la excepción como hallazgo.
                 self.add_finding(
                     title=check.__name__,
                     status="ERROR",
@@ -152,5 +154,5 @@ class BaseAuditor(ABC):
 
     @abstractmethod
     def ejecutar(self) -> list[Finding]:
-        """Run the platform-specific audit and return its findings."""
+        """Ejecutar la auditoría específica de la plataforma."""
         raise NotImplementedError
