@@ -2,7 +2,6 @@ import re
 
 from atom_core.base_auditor import BaseAuditor
 
-
 STATE_PATTERN = re.compile(r"\bState\s+(ON|OFF)\b", re.IGNORECASE)
 
 
