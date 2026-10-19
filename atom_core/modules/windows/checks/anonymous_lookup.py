@@ -16,7 +16,10 @@ def audit_anonymous_lookup(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
         '-ErrorAction SilentlyContinue"'
     )
 
-    resultado = auditor._run_command(comando).upper()
+    _command_result_1 = auditor._run_command(comando).upper()
+    if auditor._record_command_error(_command_result_1, "Anonymous Lookup Check"):
+        return
+    resultado = _command_result_1.stdout
 
     if "RESTRICTNULLSESSACCESS" in resultado:
         if ": 1" in resultado or ":1" in resultado:
