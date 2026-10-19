@@ -5,7 +5,10 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
     """Evaluate BitLocker encryption and protection state for C:."""
     auditor.log("Evaluando BitLocker...")
 
-    resultado = auditor._run_command("manage-bde -status C:", timeout=5)
+    _command_result_1 = auditor._run_command("manage-bde -status C:", timeout=5)
+    if auditor._record_command_error(_command_result_1, "Bitlocker Check"):
+        return
+    resultado = _command_result_1.stdout
     normalized = resultado.upper()
 
     if normalized.startswith("ERROR:") or "COMMAND_TIMEOUT" in normalized:
