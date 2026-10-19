@@ -5,7 +5,10 @@ def audit_guest_account(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando cuenta Invitado...")
 
-    resultado = auditor._run_command(["net", "user", "Invitado"])
+    _command_result_1 = auditor._run_command(["net", "user", "Invitado"])
+    if auditor._record_command_error(_command_result_1, "Guest Account Check"):
+        return
+    resultado = _command_result_1.stdout
 
     resultado_upper = resultado.upper()
 
