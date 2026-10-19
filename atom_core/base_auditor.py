@@ -18,11 +18,11 @@ class BaseAuditor(ABC):
         self.distro: str | None = None
         self.config: dict = self._load_config()
 
-        self.GREEN = "\\033[92m"
-        self.RED = "\\033[91m"
-        self.CYAN = "\\033[96m"
-        self.YELLOW = "\\033[93m"
-        self.RESET = "\\033[0m"
+        self.GREEN = "\033[92m"
+        self.RED = "\033[91m"
+        self.CYAN = "\033[96m"
+        self.YELLOW = "\033[93m"
+        self.RESET = "\033[0m"
 
     def _load_config(self) -> dict:
         """Cargar la configuración del proyecto o utilizar valores predeterminados seguros."""
