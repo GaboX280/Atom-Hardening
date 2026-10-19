@@ -2,10 +2,21 @@ import json
 import platform
 import shutil
 import subprocess
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from atom_core.models.finding import Finding
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    """Resultado estructurado de la ejecución de un comando del sistema."""
+
+    stdout: str
+    stderr: str
+    returncode: int | None
+    error: str | None = None
 
 
 class BaseAuditor(ABC):
@@ -85,8 +96,12 @@ class BaseAuditor(ABC):
         }
         print(f"{prefix.get(level, self.CYAN + '[*]')}{self.RESET} {message}")
 
-    def _run_command(self, command: str | list[str], timeout: int = 10) -> str:
-        """Ejecutar un comando local de auditoría con un tiempo límite."""
+    def _run_command(
+        self,
+        command: str | list[str],
+        timeout: int = 10,
+    ) -> CommandResult:
+        """Ejecutar un comando y separar su salida de los errores de ejecución."""
         try:
             flags = subprocess.CREATE_NO_WINDOW if self.os_type == "Windows" else 0
             use_shell = isinstance(command, str)
@@ -103,25 +118,50 @@ class BaseAuditor(ABC):
                 stdout, stderr = process.communicate(timeout=timeout)
             except subprocess.TimeoutExpired:
                 process.kill()
-                process.communicate()
-                return "ERROR: COMMAND_TIMEOUT"
-
-            stdout = stdout.strip()
-            stderr = stderr.strip()
-
-            if process.returncode != 0:
-                return (
-                    f"ERROR: {stderr}"
-                    if stderr
-                    else f"ERROR: COMMAND_FAILED ({process.returncode})"
+                stdout, stderr = process.communicate()
+                return CommandResult(
+                    stdout=stdout.strip(),
+                    stderr=stderr.strip(),
+                    returncode=process.returncode,
+                    error="COMMAND_TIMEOUT",
                 )
 
-            return stdout
+            return CommandResult(
+                stdout=stdout.strip(),
+                stderr=stderr.strip(),
+                returncode=process.returncode,
+            )
 
         except PermissionError:
-            return "ERROR: ACCESS_DENIED"
+            return CommandResult(
+                stdout="",
+                stderr="",
+                returncode=None,
+                error="ACCESS_DENIED",
+            )
         except OSError as exc:
-            return f"ERROR: {exc!s}"
+            return CommandResult(
+                stdout="",
+                stderr="",
+                returncode=None,
+                error=str(exc),
+            )
+
+    def _record_command_error(self, result: CommandResult, title: str) -> bool:
+        """Registrar un fallo de ejecución sin clasificarlo como vulnerabilidad."""
+        if result.error is None:
+            return False
+
+        self.add_finding(
+            title=title,
+            status="ERROR",
+            severity="HIGH",
+            details=f"No se pudo completar la comprobación: {result.error}",
+            recommendation="Verificar permisos, disponibilidad del comando y repetir la auditoría.",
+            category="Execution Error",
+            confidence="HIGH",
+        )
+        return True
 
     def command_exists(self, command: str) -> bool:
         """Comprobar si un ejecutable está disponible en la variable PATH."""
