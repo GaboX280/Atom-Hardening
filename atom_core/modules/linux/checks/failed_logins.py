@@ -12,11 +12,16 @@ def audit_failed_logins(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     cantidad = 0
 
     for log_file in logs:
-        resultado = auditor._run_command(
+        resultado_comando = auditor._run_command(
             f"grep 'Failed password' {log_file} 2>/dev/null"
         )
 
-        if resultado and not resultado.startswith("ERROR"):
+        if auditor._record_command_error(resultado_comando, "Failed SSH Logins"):
+            return
+
+        resultado = resultado_comando.stdout
+
+        if resultado:
             encontrado = True
 
             cantidad += len(resultado.splitlines())
