@@ -5,7 +5,10 @@ def audit_password_policy(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando política de expiración de contraseñas...")
 
-    resultado = auditor._run_command("grep PASS_MAX_DAYS /etc/login.defs")
+    _command_result_1 = auditor._run_command("grep PASS_MAX_DAYS /etc/login.defs")
+    if auditor._record_command_error(_command_result_1, "Password Expiration Policy"):
+        return
+    resultado = _command_result_1.stdout
 
     if resultado.startswith("ERROR"):
         auditor.add_finding(
