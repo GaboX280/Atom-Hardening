@@ -10,7 +10,10 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     # =====================================================
 
     if auditor.command_exists("ufw"):
-        resultado = auditor._run_command("ufw status").lower()
+        _command_result_1 = auditor._run_command("ufw status").lower()
+        if auditor._record_command_error(_command_result_1, "Linux Firewall Check"):
+            return
+        resultado = _command_result_1.stdout
 
         if "status: active" in resultado:
             auditor.add_finding(
@@ -45,7 +48,10 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     # =====================================================
 
     if auditor.command_exists("nft"):
-        resultado = auditor._run_command("nft list ruleset")
+        _command_result_2 = auditor._run_command("nft list ruleset")
+        if auditor._record_command_error(_command_result_2, "Linux Firewall Check"):
+            return
+        resultado = _command_result_2.stdout
 
         if resultado.startswith("ERROR"):
             auditor.add_finding(
@@ -96,7 +102,10 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     # =====================================================
 
     if auditor.command_exists("firewall-cmd"):
-        resultado = auditor._run_command("firewall-cmd --state").lower()
+        _command_result_3 = auditor._run_command("firewall-cmd --state").lower()
+        if auditor._record_command_error(_command_result_3, "Linux Firewall Check"):
+            return
+        resultado = _command_result_3.stdout
 
         if "running" in resultado:
             auditor.add_finding(
@@ -126,7 +135,10 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     # =====================================================
 
     if auditor.command_exists("iptables"):
-        resultado = auditor._run_command("iptables -L -n")
+        _command_result_4 = auditor._run_command("iptables -L -n")
+        if auditor._record_command_error(_command_result_4, "Linux Firewall Check"):
+            return
+        resultado = _command_result_4.stdout
 
         if resultado and "Chain" in resultado:
             auditor.add_finding(
