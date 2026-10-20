@@ -108,3 +108,18 @@ def test_base_auditor_run_command_reports_timeout_as_error() -> None:
     assert auditor._record_command_error(result, "Comprobación de prueba") is True
     assert len(auditor.report) == 1
     assert auditor.report[0].status == "ERROR"
+
+
+
+def test_base_auditor_run_command_reports_missing_executable() -> None:
+    """Verifica que un ejecutable inexistente se registre como error."""
+    auditor = DummyAuditor()
+
+    result = auditor._run_command(["atom_command_that_does_not_exist_98765"])
+
+    assert result.stdout == ""
+    assert result.stderr == ""
+    assert result.returncode is None
+    assert result.error is not None
+    assert auditor._record_command_error(result, "Comando inexistente") is True
+    assert auditor.report[0].status == "ERROR"
