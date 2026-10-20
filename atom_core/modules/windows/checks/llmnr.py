@@ -1,80 +1,79 @@
 from atom_core.base_auditor import BaseAuditor
+from atom_core.modules.windows.checks._registry import read_registry_value
 
 
-def audit_llmnr(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-    """
-    Verifica si LLMNR está deshabilitado.
-    """
-
+def audit_llmnr(auditor: BaseAuditor) -> None:
+    """Verify LLMNR policy using the registry's typed value."""
     auditor.log("Comprobando mitigación LLMNR...")
 
-    comando = (
-        "powershell -Command "
-        '"Get-ItemProperty '
-        "-Path 'HKLM:\\Software\\Policies\\Microsoft\\Windows NT\\DNSClient' "
-        "-Name 'EnableMulticast' "
-        '-ErrorAction SilentlyContinue"'
+    success, exists, value = read_registry_value(
+        auditor,
+        r"HKLM:\Software\Policies\Microsoft\Windows NT\DNSClient",
+        "EnableMulticast",
+        "Llmnr Check",
     )
-
-    _command_result_1 = auditor._run_command(comando)
-    if auditor._record_command_error(_command_result_1, "Llmnr Check"):
+    if not success:
         return
-    resultado = _command_result_1.stdout.upper()
 
-    if "ENABLEMULTICAST" in resultado:
-        if ": 0" in resultado or ":0" in resultado:
-            auditor.add_finding(
-                title="LLMNR Protocol",
-                status="PASS",
-                severity="INFO",
-                category="Network Security",
-                details=("LLMNR está deshabilitado."),
-                recommendation=(
-                    "Mantener mitigaciones contra spoofing "
-                    "y ataques de resolución de nombres activas."
-                ),
-                reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-                impact=(
-                    "La deshabilitación de LLMNR reduce ataques de "
-                    "poisoning y captura de credenciales NTLM mediante "
-                    "herramientas como Responder."
-                ),
-                compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
-            )
-
-        else:
-            auditor.add_finding(
-                title="LLMNR Protocol",
-                status="FAIL",
-                severity="HIGH",
-                category="Network Security",
-                details=("LLMNR está habilitado."),
-                recommendation=(
-                    "Deshabilitar LLMNR mediante políticas de grupo "
-                    "para reducir ataques de resolución de nombres."
-                ),
-                reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-                impact=(
-                    "LLMNR habilitado puede permitir ataques de "
-                    "spoofing donde un atacante responde solicitudes "
-                    "falsas y obtiene hashes NTLM."
-                ),
-                compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
-            )
-
-    else:
+    if not exists:
         auditor.add_finding(
             title="LLMNR Protocol",
             status="WARNING",
             severity="MEDIUM",
             category="Network Security",
-            details=("No existe una política explícita para LLMNR."),
-            recommendation=("Crear una política de grupo para deshabilitar LLMNR."),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Sin una política definida, el comportamiento del "
-                "protocolo puede depender de la configuración local "
-                "del sistema."
-            ),
+            details="No existe una política explícita para LLMNR.",
+            recommendation="Crear una política de grupo para deshabilitar LLMNR.",
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact="Sin una política definida, el comportamiento puede depender de la configuración local.",
             compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
+        )
+        return
+
+    try:
+        enabled = int(value)
+    except (TypeError, ValueError):
+        auditor.add_finding(
+            title="LLMNR Protocol",
+            status="ERROR",
+            severity="HIGH",
+            category="Execution Error",
+            details="El valor EnableMulticast no es un entero interpretable.",
+            recommendation="Verificar manualmente la política LLMNR y repetir la auditoría.",
+            confidence="LOW",
+        )
+        return
+
+    if enabled == 0:
+        auditor.add_finding(
+            title="LLMNR Protocol",
+            status="PASS",
+            severity="INFO",
+            category="Network Security",
+            details="LLMNR está deshabilitado por política.",
+            recommendation="Mantener la política y revisar periódicamente su aplicación.",
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact="Deshabilitar LLMNR reduce el riesgo de spoofing y captura de credenciales NTLM.",
+            compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
+        )
+    elif enabled == 1:
+        auditor.add_finding(
+            title="LLMNR Protocol",
+            status="FAIL",
+            severity="HIGH",
+            category="Network Security",
+            details="LLMNR está habilitado por política.",
+            recommendation="Deshabilitar LLMNR mediante una política de grupo.",
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact="LLMNR habilitado puede permitir ataques de spoofing y captura de credenciales.",
+            compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
+        )
+    else:
+        auditor.add_finding(
+            title="LLMNR Protocol",
+            status="ERROR",
+            severity="HIGH",
+            category="Execution Error",
+            details=f"Valor EnableMulticast desconocido: {enabled}.",
+            recommendation="Verificar el valor de política admitido por Windows.",
+            confidence="LOW",
         )
