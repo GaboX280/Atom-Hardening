@@ -13,8 +13,12 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
         "-NonInteractive",
         "-Command",
         (
-            "Get-BitLockerVolume -MountPoint 'C:' | "
-            "Select-Object VolumeStatus, ProtectionStatus | ConvertTo-Json -Compress"
+            (
+            "$ErrorActionPreference = 'Stop'; "
+            "$volume = Get-BitLockerVolume -MountPoint 'C:' -ErrorAction Stop; "
+            "[pscustomobject]@{ VolumeStatus = $volume.VolumeStatus.ToString(); "
+            "ProtectionStatus = $volume.ProtectionStatus.ToString() } | ConvertTo-Json -Compress"
+        )
         ),
     ]
     result = auditor._run_command(command, timeout=15)
