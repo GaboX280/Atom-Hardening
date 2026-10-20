@@ -13,7 +13,10 @@ def audit_uac(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
         '"'
     )
 
-    resultado = auditor._run_command(comando).upper()
+    _command_result_1 = auditor._run_command(comando).upper()
+    if auditor._record_command_error(_command_result_1, "Uac Check"):
+        return
+    resultado = _command_result_1.stdout
 
     if ": 0" in resultado or ":0" in resultado:
         auditor.add_finding(
