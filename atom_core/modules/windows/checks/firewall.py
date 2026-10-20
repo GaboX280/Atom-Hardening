@@ -48,9 +48,16 @@ try {
                 raise TypeError("Formato de perfil no válido.")
             name = profile.get("Name")
             enabled = profile.get("Enabled")
-            if not isinstance(name, str) or not isinstance(enabled, bool):
-                raise TypeError("La respuesta no contiene Name (texto) y Enabled (booleano).")
-            normalized.append((name, enabled))
+            if not isinstance(name, str):
+                raise TypeError("La respuesta no contiene Name como texto.")
+            # Windows PowerShell puede serializar propiedades booleanas como 0/1.
+            if isinstance(enabled, bool):
+                enabled_value = enabled
+            elif isinstance(enabled, int) and enabled in (0, 1):
+                enabled_value = bool(enabled)
+            else:
+                raise TypeError("La respuesta no contiene Enabled como booleano o 0/1.")
+            normalized.append((name, enabled_value))
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
         auditor.add_finding(
             title="Windows Firewall",
