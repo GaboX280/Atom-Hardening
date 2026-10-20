@@ -7,7 +7,10 @@ def audit_windows_defender(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     comando = 'powershell -Command "(Get-MpComputerStatus).RealTimeProtectionEnabled"'
 
-    resultado = auditor._run_command(comando)
+    _command_result_1 = auditor._run_command(comando)
+    if auditor._record_command_error(_command_result_1, "Windows Defender Check"):
+        return
+    resultado = _command_result_1.stdout
 
     if "TRUE" in resultado.upper():
         auditor.add_finding(
