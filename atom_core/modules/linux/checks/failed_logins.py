@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from atom_core.base_auditor import BaseAuditor
 
 
@@ -12,11 +14,18 @@ def audit_failed_logins(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     cantidad = 0
 
     for log_file in logs:
+        if not Path(log_file).is_file():
+            continue
+
         resultado_comando = auditor._run_command(
             f"grep 'Failed password' {log_file} 2>/dev/null"
         )
 
-        if auditor._record_command_error(resultado_comando, "Failed SSH Logins"):
+        if auditor._record_command_error(
+            resultado_comando,
+            "Failed SSH Logins",
+            allowed_returncodes=(0, 1),
+        ):
             return
 
         resultado = resultado_comando.stdout
