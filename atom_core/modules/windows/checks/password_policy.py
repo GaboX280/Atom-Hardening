@@ -8,7 +8,10 @@ def audit_password_policy(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando política de contraseñas...")
 
-    resultado = auditor._run_command("net accounts")
+    _command_result_1 = auditor._run_command("net accounts")
+    if auditor._record_command_error(_command_result_1, "Password Policy Check"):
+        return
+    resultado = _command_result_1.stdout
 
     longitud_minima = 0
 
