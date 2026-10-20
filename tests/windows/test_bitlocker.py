@@ -19,7 +19,6 @@ def auditor() -> Mock:
     ) -> bool:
         if result.error is None and result.returncode in allowed_returncodes:
             return False
-
         mock.add_finding(
             title=title,
             status="ERROR",
@@ -35,59 +34,51 @@ def auditor() -> Mock:
     return mock
 
 
-def run_check(auditor: Mock, output: str) -> None:
-    if output.startswith("ERROR: "):
-        auditor._run_command.return_value = CommandResult(
-            stdout="",
-            stderr="",
-            returncode=None,
-            error=output.removeprefix("ERROR: "),
-        )
-    else:
-        auditor._run_command.return_value = CommandResult(
-            stdout=output,
-            stderr="",
-            returncode=0,
-        )
+def run_check(auditor: Mock, output: str, returncode: int = 0) -> None:
+    auditor._run_command.return_value = CommandResult(
+        stdout=output,
+        stderr="",
+        returncode=returncode,
+    )
     audit_bitlocker(auditor)
 
 
 def test_bitlocker_passes_when_encrypted_and_protected(auditor: Mock) -> None:
-    run_check(
-        auditor,
-        "Conversion Status: Fully Encrypted\nProtection Status: Protection On",
-    )
+    run_check(auditor, '{"VolumeStatus":"FullyEncrypted","ProtectionStatus":"On"}')
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "PASS"
     assert finding["severity"] == "INFO"
 
 
 def test_bitlocker_warns_when_encrypted_but_protection_is_off(auditor: Mock) -> None:
-    run_check(
-        auditor,
-        "Conversion Status: Fully Encrypted\nProtection Status: Protection Off",
-    )
+    run_check(auditor, '{"VolumeStatus":"FullyEncrypted","ProtectionStatus":"Off"}')
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "WARNING"
     assert finding["severity"] == "HIGH"
 
 
 def test_bitlocker_fails_when_fully_decrypted(auditor: Mock) -> None:
-    run_check(auditor, "Conversion Status: Fully Decrypted")
+    run_check(auditor, '{"VolumeStatus":"FullyDecrypted","ProtectionStatus":"Off"}')
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "FAIL"
     assert finding["severity"] == "HIGH"
 
 
 def test_bitlocker_reports_command_errors_as_error(auditor: Mock) -> None:
-    run_check(auditor, "ERROR: ACCESS_DENIED")
+    auditor._run_command.return_value = CommandResult(
+        stdout="",
+        stderr="access denied",
+        returncode=None,
+        error="ACCESS_DENIED",
+    )
+    audit_bitlocker(auditor)
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "ERROR"
     assert finding["severity"] == "HIGH"
 
 
-def test_bitlocker_warns_when_state_is_unknown(auditor: Mock) -> None:
-    run_check(auditor, "manage-bde returned unexpected output")
+def test_bitlocker_reports_unparseable_output_as_error(auditor: Mock) -> None:
+    run_check(auditor, "unexpected output")
     finding = auditor.add_finding.call_args.kwargs
-    assert finding["status"] == "WARNING"
-    assert finding["confidence"] == "LOW"
+    assert finding["status"] == "ERROR"
+    assert finding["severity"] == "HIGH"
