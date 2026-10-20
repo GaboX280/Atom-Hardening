@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from atom_core.base_auditor import CommandResult
 from atom_core.modules.windows.checks.firewall import audit_firewall
 
 
@@ -14,7 +15,19 @@ def auditor() -> Mock:
 
 
 def run_check(auditor: Mock, output: str) -> None:
-    auditor._run_command.return_value = output
+    if output.startswith("ERROR: "):
+        auditor._run_command.return_value = CommandResult(
+            stdout="",
+            stderr="",
+            returncode=None,
+            error=output.removeprefix("ERROR: "),
+        )
+    else:
+        auditor._run_command.return_value = CommandResult(
+            stdout=output,
+            stderr="",
+            returncode=0,
+        )
     audit_firewall(auditor)
 
 
@@ -68,4 +81,4 @@ def test_firewall_reports_command_errors(auditor: Mock) -> None:
 
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "ERROR"
-    assert finding["severity"] == "MEDIUM"
+    assert finding["severity"] == "HIGH"
