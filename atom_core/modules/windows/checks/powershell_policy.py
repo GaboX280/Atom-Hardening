@@ -7,7 +7,10 @@ def audit_powershell_policy(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     comando = 'powershell -Command "Get-ExecutionPolicy"'
 
-    resultado = auditor._run_command(comando).strip().upper()
+    _command_result_1 = auditor._run_command(comando).strip().upper()
+    if auditor._record_command_error(_command_result_1, "Powershell Policy Check"):
+        return
+    resultado = _command_result_1.stdout
 
     if "BYPASS" in resultado or "UNRESTRICTED" in resultado:
         auditor.add_finding(
