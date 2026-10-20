@@ -83,8 +83,16 @@ def test_base_auditor_run_command_preserves_nonzero_exit_code() -> None:
     assert result.stderr == "diagnostico"
     assert result.returncode == 7
     assert result.error is None
-    assert auditor._record_command_error(result, "Comprobación de prueba") is False
+    assert (
+        auditor._record_command_error(
+            result, "Comprobación de prueba", allowed_returncodes=(7,)
+        )
+        is False
+    )
     assert auditor.report == []
+
+    assert auditor._record_command_error(result, "Código inesperado") is True
+    assert auditor.report[0].status == "ERROR"
 
 
 def test_base_auditor_run_command_reports_timeout_as_error() -> None:
