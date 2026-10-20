@@ -7,7 +7,10 @@ def audit_windows_update(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     comando = 'powershell -Command "(Get-Service wuauserv).Status"'
 
-    resultado = auditor._run_command(comando).strip().upper()
+    _command_result_1 = auditor._run_command(comando).strip().upper()
+    if auditor._record_command_error(_command_result_1, "Windows Update Check"):
+        return
+    resultado = _command_result_1.stdout
 
     if "RUNNING" in resultado:
         auditor.add_finding(
