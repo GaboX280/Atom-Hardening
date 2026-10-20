@@ -16,10 +16,10 @@ def audit_llmnr(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
         '-ErrorAction SilentlyContinue"'
     )
 
-    _command_result_1 = auditor._run_command(comando).upper()
+    _command_result_1 = auditor._run_command(comando)
     if auditor._record_command_error(_command_result_1, "Llmnr Check"):
         return
-    resultado = _command_result_1.stdout
+    resultado = _command_result_1.stdout.upper()
 
     if "ENABLEMULTICAST" in resultado:
         if ": 0" in resultado or ":0" in resultado:
