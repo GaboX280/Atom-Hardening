@@ -1,71 +1,76 @@
-import re
+import json
 
 from atom_core.base_auditor import BaseAuditor
 
-STATE_PATTERN = re.compile(r"\bState\s+(ON|OFF)\b", re.IGNORECASE)
+EXPECTED_PROFILES = {"DOMAIN", "PRIVATE", "PUBLIC"}
 
 
 def audit_firewall(auditor: BaseAuditor) -> None:
-    """Evaluate the state of all Windows Firewall profiles."""
+    """Evaluate Windows Firewall profiles without parsing localized text."""
     auditor.log("Evaluando el estado del Firewall de Windows...")
 
-    _command_result_1 = auditor._run_command("netsh advfirewall show allprofiles state")
-    if auditor._record_command_error(_command_result_1, "Firewall Check"):
-        return
-    resultado = _command_result_1.stdout
+    # PowerShell devuelve propiedades tipadas en JSON, no texto localizado de netsh.
+    command = [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-NetFirewallProfile | Select-Object Name, Enabled | ConvertTo-Json -Compress",
+    ]
+    result = auditor._run_command(command)
 
-    if resultado.startswith("ERROR:"):
+    if auditor._record_command_error(result, "Firewall Check"):
+        return
+
+    try:
+        profiles = json.loads(result.stdout)
+        if isinstance(profiles, dict):
+            profiles = [profiles]
+        if not isinstance(profiles, list) or not profiles:
+            raise ValueError("La consulta no devolvió una lista de perfiles.")
+
+        normalized = {}
+        for profile in profiles:
+            if not isinstance(profile, dict):
+                raise ValueError("Formato de perfil no válido.")
+            name = profile.get("Name")
+            enabled = profile.get("Enabled")
+            if not isinstance(name, str) or not isinstance(enabled, bool):
+                raise ValueError("Faltan las propiedades Name o Enabled.")
+            normalized[name.upper()] = enabled
+
+        if set(normalized) != EXPECTED_PROFILES:
+            raise ValueError(
+                "No se recibieron exactamente los perfiles Domain, Private y Public."
+            )
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
         auditor.add_finding(
             title="Windows Firewall",
             status="ERROR",
-            severity="MEDIUM",
+            severity="HIGH",
             category="Network Security",
-            details=resultado,
-            recommendation="Ejecutar la auditoría con permisos suficientes y repetir el análisis.",
+            details=f"No se pudo interpretar la respuesta estructurada del firewall: {exc}",
+            recommendation="Verificar la disponibilidad de Get-NetFirewallProfile y repetir la auditoría.",
             reference="Microsoft Security Baseline / CIS Windows Benchmark",
-            impact="No fue posible determinar el estado de los perfiles del firewall.",
-            compliance=["CIS Controls v8 - Control 13", "NIST SP 800-53 SC-7"],
-        )
-        return
-
-    states = [state.upper() for state in STATE_PATTERN.findall(resultado)]
-
-    if not states:
-        auditor.add_finding(
-            title="Windows Firewall",
-            status="WARNING",
-            severity="MEDIUM",
-            category="Network Security",
-            details="No se pudieron interpretar los estados de los perfiles del firewall.",
-            recommendation="Revisar la salida de netsh y ejecutar Atom con privilegios adecuados.",
-            reference="Microsoft Security Baseline / CIS Windows Benchmark",
-            impact="La postura del firewall no pudo verificarse de forma confiable.",
+            impact="No fue posible determinar de forma confiable el estado de todos los perfiles.",
             confidence="LOW",
             compliance=["CIS Controls v8 - Control 13", "NIST SP 800-53 SC-7"],
         )
         return
 
-    enabled = states.count("ON")
-    disabled = states.count("OFF")
-
-    if disabled > 0:
+    disabled = [name for name, enabled in normalized.items() if not enabled]
+    if disabled:
         status = "FAIL"
         severity = "HIGH"
-        details = f"Se detectaron {disabled} perfil(es) del firewall desactivado(s)."
+        details = "Perfiles del firewall desactivados: " + ", ".join(sorted(disabled))
         recommendation = "Activar Windows Firewall en todos los perfiles y revisar sus reglas."
-        confidence = "HIGH" if len(states) >= 3 else "MEDIUM"
-    elif enabled == len(states) and len(states) >= 3:
-        status = "PASS"
-        severity = "INFO"
-        details = "Los tres perfiles de Windows Firewall están activos."
-        recommendation = "Mantener las reglas del firewall actualizadas y revisarlas periódicamente."
         confidence = "HIGH"
     else:
-        status = "WARNING"
-        severity = "MEDIUM"
-        details = f"Se verificaron {len(states)} perfil(es); no se obtuvo el conjunto completo esperado."
-        recommendation = "Confirmar manualmente el estado de Domain, Private y Public."
-        confidence = "MEDIUM"
+        status = "PASS"
+        severity = "INFO"
+        details = "Los perfiles Domain, Private y Public de Windows Firewall están activos."
+        recommendation = "Mantener las reglas del firewall actualizadas y revisarlas periódicamente."
+        confidence = "HIGH"
 
     auditor.add_finding(
         title="Windows Firewall",
