@@ -40,7 +40,7 @@ try {{
     try:
         payload = json.loads(result.stdout)
         if not isinstance(payload, dict) or not isinstance(payload.get("exists"), bool):
-            raise ValueError("La respuesta del Registro no tiene el formato esperado.")
+            raise TypeError("La respuesta del Registro no tiene el formato esperado.")
         if payload["exists"] and "value" not in payload:
             raise ValueError("La respuesta no contiene el valor del Registro.")
         return True, payload["exists"], payload.get("value")
