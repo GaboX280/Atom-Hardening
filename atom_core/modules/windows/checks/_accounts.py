@@ -33,7 +33,7 @@ ConvertTo-Json -InputObject $accounts -Compress
             raise ValueError("La consulta no devolvió exactamente una cuenta integrada.")
         account = payload[0]
         if not isinstance(account, dict) or not isinstance(account.get("Disabled"), bool):
-            raise ValueError("La respuesta no contiene el estado Disabled esperado.")
+            raise TypeError("La respuesta no contiene el estado Disabled esperado.")
         return True, account
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
         auditor.add_finding(
