@@ -99,7 +99,7 @@ class BaseAuditor(ABC):
     def _run_command(
         self,
         command: str | list[str],
-        timeout: int = 10,
+        timeout: float = 10,
     ) -> CommandResult:
         """Ejecutar un comando y separar su salida de los errores de ejecución."""
         try:
