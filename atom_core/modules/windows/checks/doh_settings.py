@@ -16,10 +16,10 @@ def audit_doh_settings(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
         '-ErrorAction SilentlyContinue"'
     )
 
-    _command_result_1 = auditor._run_command(comando).upper()
+    _command_result_1 = auditor._run_command(comando)
     if auditor._record_command_error(_command_result_1, "Doh Settings Check"):
         return
-    resultado = _command_result_1.stdout
+    resultado = _command_result_1.stdout.upper()
 
     if "ENABLEAUTODOH" in resultado and ": 2" in resultado:
         auditor.add_finding(
