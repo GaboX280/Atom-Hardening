@@ -1,54 +1,54 @@
 from atom_core.base_auditor import BaseAuditor
+from atom_core.modules.windows.checks._powershell import run_powershell_json
 
 
-def audit_windows_defender(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-
+def audit_windows_defender(auditor: BaseAuditor) -> None:
+    """Check Defender real-time protection using a Boolean property."""
     auditor.log("Comprobando protección de Windows Defender...")
 
-    comando = 'powershell -Command "(Get-MpComputerStatus).RealTimeProtectionEnabled"'
-
-    _command_result_1 = auditor._run_command(comando)
-    if auditor._record_command_error(_command_result_1, "Windows Defender Check"):
+    script = r"""
+$ErrorActionPreference = 'Stop'
+try {
+    $enabled = (Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled
+    ConvertTo-Json -InputObject ([bool]$enabled) -Compress
+} catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
+"""
+    success, enabled = run_powershell_json(auditor, script, "Windows Defender Check")
+    if not success:
         return
-    resultado = _command_result_1.stdout
 
-    if "TRUE" in resultado.upper():
+    if not isinstance(enabled, bool):
         auditor.add_finding(
             title="Windows Defender",
-            status="PASS",
-            severity="INFO",
-            category="Endpoint Protection",
-            details=("La protección en tiempo real de Windows Defender está activa."),
-            recommendation=(
-                "Mantener las firmas antivirus actualizadas y "
-                "verificar periódicamente la configuración de protección."
-            ),
-            reference=("Microsoft Defender Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "La protección activa ayuda a prevenir la ejecución "
-                "de malware y amenazas conocidas en el endpoint."
-            ),
-            compliance=["CIS Controls v8 - Control 10", "NIST SP 800-53 SI-3"],
-        )
-
-    else:
-        auditor.add_finding(
-            title="Windows Defender",
-            status="FAIL",
+            status="ERROR",
             severity="HIGH",
-            category="Endpoint Protection",
-            details=(
-                "La protección en tiempo real de Windows Defender está deshabilitada."
-            ),
-            recommendation=(
-                "Activar la protección en tiempo real y validar que "
-                "Microsoft Defender esté correctamente configurado."
-            ),
-            reference=("Microsoft Defender Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Un endpoint sin protección activa aumenta el riesgo "
-                "de infección por malware, ejecución de código malicioso "
-                "y compromiso del sistema."
-            ),
-            compliance=["CIS Controls v8 - Control 10", "NIST SP 800-53 SI-3"],
+            category="Execution Error",
+            details="La consulta de Defender no devolvió un valor booleano.",
+            recommendation="Verificar la disponibilidad de Get-MpComputerStatus y repetir la auditoría.",
+            confidence="LOW",
         )
+        return
+
+    if enabled:
+        status, severity = "PASS", "INFO"
+        details = "La protección en tiempo real de Windows Defender está activa."
+        recommendation = "Mantener las firmas antivirus actualizadas y revisar periódicamente la protección."
+    else:
+        status, severity = "FAIL", "HIGH"
+        details = "La protección en tiempo real de Windows Defender está deshabilitada."
+        recommendation = "Verificar y activar la protección en tiempo real según las políticas del sistema."
+
+    auditor.add_finding(
+        title="Windows Defender",
+        status=status,
+        severity=severity,
+        category="Endpoint Protection",
+        details=details,
+        recommendation=recommendation,
+        reference="Microsoft Defender Security Baseline / CIS Windows Benchmark",
+        impact="La protección activa ayuda a prevenir malware y amenazas conocidas en el endpoint.",
+        compliance=["CIS Controls v8 - Control 10", "NIST SP 800-53 SI-3"],
+    )
