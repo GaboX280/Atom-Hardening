@@ -21,10 +21,10 @@ def audit_risky_services(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
             '-ErrorAction SilentlyContinue).Status"'
         )
 
-        _command_result_1 = auditor._run_command(comando).strip().upper()
+        _command_result_1 = auditor._run_command(comando)
         if auditor._record_command_error(_command_result_1, "Risky Services Check"):
             return
-        resultado = _command_result_1.stdout
+        resultado = _command_result_1.stdout.strip().upper()
 
         if "RUNNING" in resultado:
             auditor.add_finding(
