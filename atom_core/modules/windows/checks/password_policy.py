@@ -12,9 +12,20 @@ def audit_password_policy(auditor: BaseAuditor) -> None:
 $ErrorActionPreference = 'Stop'
 $configPath = Join-Path $env:TEMP ('atom-policy-' + [guid]::NewGuid().ToString('N') + '.cfg')
 try {
-    & secedit.exe /export /cfg $configPath /areas SECURITYPOLICY | Out-Null
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $configPath)) {
-        throw 'No se pudo exportar la política de seguridad local.'
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        [Console]::Error.WriteLine('Este control requiere ejecutar Atom-Hardening como administrador.')
+        exit 2
+    }
+    $seceditOutput = & secedit.exe /export /cfg $configPath /areas SECURITYPOLICY 2>&1
+    $seceditExitCode = $LASTEXITCODE
+    if ($seceditExitCode -ne 0 -or -not (Test-Path -LiteralPath $configPath)) {
+        $diagnostic = ($seceditOutput | Out-String).Trim()
+        if (-not $diagnostic) {
+            $diagnostic = 'secedit no generó el archivo de configuración esperado.'
+        }
+        throw "No se pudo exportar la política de seguridad local (código $seceditExitCode): $diagnostic"
     }
     $match = Select-String -Path $configPath -Pattern '^\s*MinimumPasswordLength\s*=\s*(\d+)\s*$'
     if (-not $match) {
