@@ -32,11 +32,11 @@ def audit_firewall(auditor: BaseAuditor) -> None:
         normalized = {}
         for profile in profiles:
             if not isinstance(profile, dict):
-                raise ValueError("Formato de perfil no válido.")
+                raise TypeError("Formato de perfil no válido.")
             name = profile.get("Name")
             enabled = profile.get("Enabled")
             if not isinstance(name, str) or not isinstance(enabled, bool):
-                raise ValueError("Faltan las propiedades Name o Enabled.")
+                raise TypeError("Faltan las propiedades Name o Enabled.")
             normalized[name.upper()] = enabled
 
         if set(normalized) != EXPECTED_PROFILES:
