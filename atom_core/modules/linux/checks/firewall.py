@@ -10,10 +10,10 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     # =====================================================
 
     if auditor.command_exists("ufw"):
-        _command_result_1 = auditor._run_command("ufw status").lower()
+        _command_result_1 = auditor._run_command("ufw status")
         if auditor._record_command_error(_command_result_1, "Linux Firewall Check"):
             return
-        resultado = _command_result_1.stdout
+        resultado = _command_result_1.stdout.lower()
 
         if "status: active" in resultado:
             auditor.add_finding(
@@ -102,10 +102,10 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     # =====================================================
 
     if auditor.command_exists("firewall-cmd"):
-        _command_result_3 = auditor._run_command("firewall-cmd --state").lower()
+        _command_result_3 = auditor._run_command("firewall-cmd --state")
         if auditor._record_command_error(_command_result_3, "Linux Firewall Check"):
             return
-        resultado = _command_result_3.stdout
+        resultado = _command_result_3.stdout.lower()
 
         if "running" in resultado:
             auditor.add_finding(
