@@ -1,11 +1,9 @@
 from atom_core.base_auditor import BaseAuditor
+from atom_core.modules.windows.checks._powershell import run_powershell_json
 
 
-def audit_risky_services(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-    """
-    Detecta servicios con superficie de ataque elevada.
-    """
-
+def audit_risky_services(auditor: BaseAuditor) -> None:
+    """Detect selected services using their structured status property."""
     auditor.log("Auditando servicios riesgosos...")
 
     risky_services = {
@@ -15,52 +13,56 @@ def audit_risky_services(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     }
 
     for service, description in risky_services.items():
-        comando = (
-            f"powershell -Command "
-            f'"(Get-Service {service} '
-            '-ErrorAction SilentlyContinue).Status"'
+        script = f"""
+$ErrorActionPreference = 'Stop'
+try {{
+    $item = Get-Service -Name '{service}' -ErrorAction Stop
+    [pscustomobject]@{{ Name = $item.Name; Status = $item.Status.ToString() }} | ConvertTo-Json -Compress
+}} catch {{
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}}
+"""
+        success, payload = run_powershell_json(
+            auditor, script, f"Risky Service Check: {service}"
         )
+        if not success:
+            continue
 
-        _command_result_1 = auditor._run_command(comando)
-        if auditor._record_command_error(_command_result_1, "Risky Services Check"):
-            return
-        resultado = _command_result_1.stdout.strip().upper()
-
-        if "RUNNING" in resultado:
+        if not isinstance(payload, dict) or not isinstance(payload.get("Status"), str):
             auditor.add_finding(
                 title=f"Risky Service: {description}",
-                status="FAIL",
-                severity="MEDIUM",
-                category="Service Management",
-                details=(f"El servicio {description} está ejecutándose."),
-                recommendation=(
-                    "Deshabilitar servicios innecesarios o restringir "
-                    "su exposición según los requerimientos del sistema."
-                ),
-                reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-                impact=(
-                    f"El servicio {description} aumenta la superficie "
-                    "de ataque del sistema y puede ser utilizado como "
-                    "vector de explotación o movimiento lateral."
-                ),
-                compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
+                status="ERROR",
+                severity="HIGH",
+                category="Execution Error",
+                details="La consulta no devolvió un estado de servicio válido.",
+                recommendation="Verificar la consulta del servicio y repetir la auditoría.",
+                confidence="LOW",
             )
+            continue
 
+        service_status = payload["Status"].upper()
+        if service_status == "RUNNING":
+            status, severity = "FAIL", "MEDIUM"
+            details = f"El servicio {description} está ejecutándose."
+            recommendation = "Deshabilitar servicios innecesarios o restringir su exposición según los requerimientos."
+        elif service_status == "STOPPED":
+            status, severity = "PASS", "INFO"
+            details = f"El servicio {description} no está activo."
+            recommendation = "Mantener únicamente los servicios necesarios."
         else:
-            auditor.add_finding(
-                title=f"Risky Service: {description}",
-                status="PASS",
-                severity="INFO",
-                category="Service Management",
-                details=(f"El servicio {description} no está activo."),
-                recommendation=(
-                    "Mantener únicamente servicios necesarios "
-                    "para reducir la superficie de ataque."
-                ),
-                reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-                impact=(
-                    "Mantener servicios innecesarios deshabilitados "
-                    "reduce puntos potenciales de ataque."
-                ),
-                compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
-            )
+            status, severity = "WARNING", "MEDIUM"
+            details = f"El servicio {description} tiene el estado {service_status}."
+            recommendation = "Verificar si el estado del servicio es apropiado para el entorno."
+
+        auditor.add_finding(
+            title=f"Risky Service: {description}",
+            status=status,
+            severity=severity,
+            category="Service Management",
+            details=details,
+            recommendation=recommendation,
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact=f"El servicio {description} puede aumentar la superficie de ataque del sistema.",
+            compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 CM-7"],
+        )
