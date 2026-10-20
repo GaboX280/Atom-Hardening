@@ -2,6 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from atom_core.base_auditor import CommandResult
 from atom_core.modules.windows.checks.bitlocker import audit_bitlocker
 
 
@@ -14,7 +15,19 @@ def auditor() -> Mock:
 
 
 def run_check(auditor: Mock, output: str) -> None:
-    auditor._run_command.return_value = output
+    if output.startswith("ERROR: "):
+        auditor._run_command.return_value = CommandResult(
+            stdout="",
+            stderr="",
+            returncode=None,
+            error=output.removeprefix("ERROR: "),
+        )
+    else:
+        auditor._run_command.return_value = CommandResult(
+            stdout=output,
+            stderr="",
+            returncode=0,
+        )
     audit_bitlocker(auditor)
 
 
@@ -49,7 +62,7 @@ def test_bitlocker_reports_command_errors_as_error(auditor: Mock) -> None:
     run_check(auditor, "ERROR: ACCESS_DENIED")
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "ERROR"
-    assert finding["severity"] == "MEDIUM"
+    assert finding["severity"] == "HIGH"
 
 
 def test_bitlocker_warns_when_state_is_unknown(auditor: Mock) -> None:
