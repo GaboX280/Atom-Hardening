@@ -19,7 +19,6 @@ def auditor() -> Mock:
     ) -> bool:
         if result.error is None and result.returncode in allowed_returncodes:
             return False
-
         mock.add_finding(
             title=title,
             status="ERROR",
@@ -35,71 +34,58 @@ def auditor() -> Mock:
     return mock
 
 
-def run_check(auditor: Mock, output: str) -> None:
-    if output.startswith("ERROR: "):
-        auditor._run_command.return_value = CommandResult(
-            stdout="",
-            stderr="",
-            returncode=None,
-            error=output.removeprefix("ERROR: "),
-        )
-    else:
-        auditor._run_command.return_value = CommandResult(
-            stdout=output,
-            stderr="",
-            returncode=0,
-        )
+def run_check(auditor: Mock, output: str, returncode: int = 0) -> None:
+    auditor._run_command.return_value = CommandResult(
+        stdout=output,
+        stderr="",
+        returncode=returncode,
+    )
     audit_firewall(auditor)
 
 
-def test_firewall_passes_when_all_profiles_are_on(auditor: Mock) -> None:
+def test_firewall_passes_with_structured_output_independent_of_os_language(auditor: Mock) -> None:
     run_check(
         auditor,
-        """
-        Domain Profile Settings:
-            State ON
-        Private Profile Settings:
-            State ON
-        Public Profile Settings:
-            State ON
-        """,
+        '[{"Name":"Domain","Enabled":true},'
+        '{"Name":"Private","Enabled":true},'
+        '{"Name":"Public","Enabled":true}]',
     )
-
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "PASS"
     assert finding["severity"] == "INFO"
     assert finding["confidence"] == "HIGH"
+    auditor._run_command.assert_called_once()
+    assert isinstance(auditor._run_command.call_args.args[0], list)
 
 
-def test_firewall_fails_when_any_profile_is_off(auditor: Mock) -> None:
+def test_firewall_fails_when_any_profile_is_disabled(auditor: Mock) -> None:
     run_check(
         auditor,
-        """
-        Domain Profile Settings:
-            State ON
-        Private Profile Settings:
-            State OFF
-        Public Profile Settings:
-            State ON
-        """,
+        '[{"Name":"Domain","Enabled":true},'
+        '{"Name":"Private","Enabled":false},'
+        '{"Name":"Public","Enabled":true}]',
     )
-
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "FAIL"
     assert finding["severity"] == "HIGH"
+    assert "PRIVATE" in finding["details"]
 
 
-def test_firewall_warns_when_output_cannot_be_interpreted(auditor: Mock) -> None:
+def test_firewall_reports_unparseable_structured_output_as_error(auditor: Mock) -> None:
     run_check(auditor, "unexpected output")
-
     finding = auditor.add_finding.call_args.kwargs
-    assert finding["status"] == "WARNING"
-    assert finding["confidence"] == "LOW"
+    assert finding["status"] == "ERROR"
+    assert finding["severity"] == "HIGH"
 
 
 def test_firewall_reports_command_errors(auditor: Mock) -> None:
-    run_check(auditor, "ERROR: ACCESS_DENIED")
-
+    auditor._run_command.return_value = CommandResult(
+        stdout="",
+        stderr="access denied",
+        returncode=None,
+        error="ACCESS_DENIED",
+    )
+    audit_firewall(auditor)
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "ERROR"
     assert finding["severity"] == "HIGH"
