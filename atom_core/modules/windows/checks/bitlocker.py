@@ -12,8 +12,10 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        "Get-BitLockerVolume -MountPoint 'C:' | "
-        "Select-Object VolumeStatus, ProtectionStatus | ConvertTo-Json -Compress",
+        (
+            "Get-BitLockerVolume -MountPoint 'C:' | "
+            "Select-Object VolumeStatus, ProtectionStatus | ConvertTo-Json -Compress"
+        ),
     ]
     result = auditor._run_command(command, timeout=15)
     if auditor._record_command_error(result, "Bitlocker Check"):
@@ -26,12 +28,12 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
                 raise ValueError("No se recibió exactamente un resultado para C:.")
             volume = volume[0]
         if not isinstance(volume, dict):
-            raise ValueError("La respuesta no contiene un objeto de volumen.")
+            raise TypeError("La respuesta no contiene un objeto de volumen.")
 
         volume_status = volume.get("VolumeStatus")
         protection_status = volume.get("ProtectionStatus")
         if not isinstance(volume_status, str) or not isinstance(protection_status, str):
-            raise ValueError("Faltan VolumeStatus o ProtectionStatus.")
+            raise TypeError("Faltan VolumeStatus o ProtectionStatus.")
         volume_status = volume_status.upper()
         protection_status = protection_status.upper()
     except (json.JSONDecodeError, TypeError, ValueError) as exc:
