@@ -12,11 +12,13 @@ def audit_failed_logins(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     encontrado = False
 
     cantidad = 0
+    logs_consultados = 0
 
     for log_file in logs:
         if not Path(log_file).is_file():
             continue
 
+        logs_consultados += 1
         resultado_comando = auditor._run_command(
             f"grep 'Failed password' {log_file} 2>/dev/null"
         )
@@ -34,6 +36,18 @@ def audit_failed_logins(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
             encontrado = True
 
             cantidad += len(resultado.splitlines())
+
+    if logs_consultados == 0:
+        auditor.add_finding(
+            title="Failed SSH Logins",
+            status="ERROR",
+            severity="MEDIUM",
+            category="Authentication Security",
+            details="No se encontró un archivo de registro de autenticación compatible.",
+            recommendation="Verificar la configuración de registros de autenticación del sistema.",
+            compliance=["CIS Linux Benchmark"],
+        )
+        return
 
     if encontrado:
         auditor.add_finding(
