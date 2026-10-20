@@ -29,7 +29,9 @@ ConvertTo-Json -InputObject $accounts -Compress
             return True, None
         if isinstance(payload, dict):
             payload = [payload]
-        if not isinstance(payload, list) or len(payload) != 1:
+        if not isinstance(payload, list):
+            raise TypeError("La consulta no devolvió una lista de cuentas.")
+        if len(payload) != 1:
             raise ValueError("La consulta no devolvió exactamente una cuenta integrada.")
         account = payload[0]
         if not isinstance(account, dict) or not isinstance(account.get("Disabled"), bool):
