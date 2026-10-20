@@ -147,16 +147,25 @@ class BaseAuditor(ABC):
                 error=str(exc),
             )
 
-    def _record_command_error(self, result: CommandResult, title: str) -> bool:
-        """Registrar un fallo de ejecución sin clasificarlo como vulnerabilidad."""
-        if result.error is None:
+    def _record_command_error(
+        self,
+        result: CommandResult,
+        title: str,
+        allowed_returncodes: tuple[int, ...] = (0,),
+    ) -> bool:
+        """Registrar ejecuciones incompletas o códigos de salida inesperados."""
+        if result.error is None and result.returncode in allowed_returncodes:
             return False
 
+        detail = result.error or (
+            f"El comando terminó con código {result.returncode}. "
+            f"{result.stderr or result.stdout}".strip()
+        )
         self.add_finding(
             title=title,
             status="ERROR",
             severity="HIGH",
-            details=f"No se pudo completar la comprobación: {result.error}",
+            details=f"No se pudo completar la comprobación: {detail}",
             recommendation="Verificar permisos, disponibilidad del comando y repetir la auditoría.",
             category="Execution Error",
             confidence="HIGH",
