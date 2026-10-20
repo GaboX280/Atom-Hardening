@@ -12,12 +12,19 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        (
-            "$ErrorActionPreference = 'Stop'; "
-            "$volume = Get-BitLockerVolume -MountPoint 'C:' -ErrorAction Stop; "
-            "[pscustomobject]@{ VolumeStatus = $volume.VolumeStatus.ToString(); "
-            "ProtectionStatus = $volume.ProtectionStatus.ToString() } | ConvertTo-Json -Compress"
-        ),
+        r"""
+$ErrorActionPreference = 'Stop'
+try {
+    $volume = Get-BitLockerVolume -MountPoint 'C:' -ErrorAction Stop
+    [pscustomobject]@{
+        VolumeStatus = $volume.VolumeStatus.ToString()
+        ProtectionStatus = $volume.ProtectionStatus.ToString()
+    } | ConvertTo-Json -Compress
+} catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
+""",
     ]
     result = auditor._run_command(command, timeout=15)
     if auditor._record_command_error(result, "Bitlocker Check"):
