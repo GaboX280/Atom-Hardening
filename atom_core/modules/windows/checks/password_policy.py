@@ -22,6 +22,9 @@ try {
     }
     $length = [int]$match.Matches[0].Groups[1].Value
     [pscustomobject]@{ minimum_password_length = $length } | ConvertTo-Json -Compress
+} catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
 }
 finally {
     Remove-Item -LiteralPath $configPath -Force -ErrorAction SilentlyContinue
