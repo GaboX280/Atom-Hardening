@@ -1,94 +1,87 @@
+import json
+
 from atom_core.base_auditor import BaseAuditor
 
 
 def audit_bitlocker(auditor: BaseAuditor) -> None:
-    """Evaluate BitLocker encryption and protection state for C:."""
+    """Evaluate BitLocker state using stable PowerShell properties."""
     auditor.log("Evaluando BitLocker...")
 
-    _command_result_1 = auditor._run_command("manage-bde -status C:", timeout=5)
-    if auditor._record_command_error(_command_result_1, "Bitlocker Check"):
+    command = [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-BitLockerVolume -MountPoint 'C:' | "
+        "Select-Object VolumeStatus, ProtectionStatus | ConvertTo-Json -Compress",
+    ]
+    result = auditor._run_command(command, timeout=15)
+    if auditor._record_command_error(result, "Bitlocker Check"):
         return
-    resultado = _command_result_1.stdout
-    normalized = resultado.upper()
 
-    if normalized.startswith("ERROR:") or "COMMAND_TIMEOUT" in normalized:
+    try:
+        volume = json.loads(result.stdout)
+        if isinstance(volume, list):
+            if len(volume) != 1:
+                raise ValueError("No se recibió exactamente un resultado para C:.")
+            volume = volume[0]
+        if not isinstance(volume, dict):
+            raise ValueError("La respuesta no contiene un objeto de volumen.")
+
+        volume_status = volume.get("VolumeStatus")
+        protection_status = volume.get("ProtectionStatus")
+        if not isinstance(volume_status, str) or not isinstance(protection_status, str):
+            raise ValueError("Faltan VolumeStatus o ProtectionStatus.")
+        volume_status = volume_status.upper()
+        protection_status = protection_status.upper()
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
         auditor.add_finding(
             title="BitLocker",
             status="ERROR",
-            severity="MEDIUM",
+            severity="HIGH",
             category="Data Protection",
-            details=resultado,
-            recommendation="Ejecutar la auditoría con privilegios de administrador y repetir el análisis.",
+            details=f"No se pudo interpretar el estado estructurado de BitLocker: {exc}",
+            recommendation="Verificar que Get-BitLockerVolume esté disponible y repetir la auditoría.",
             reference="Microsoft Security Baseline / CIS Windows Benchmark",
             impact="No fue posible verificar el estado de cifrado de la unidad C:.",
+            confidence="LOW",
             compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
         )
         return
 
-    fully_encrypted = (
-        "FULLY ENCRYPTED" in normalized or "COMPLETAMENTE CIFRADO" in normalized
-    )
-    protection_enabled = (
-        "PROTECTION ON" in normalized
-        or "PROTECCIÓN ACTIVADA" in normalized
-        or "PROTECCION ACTIVADA" in normalized
-    )
-    fully_decrypted = (
-        "FULLY DECRYPTED" in normalized or "COMPLETAMENTE DESCIFRADO" in normalized
-    )
-
-    if fully_encrypted and protection_enabled:
-        auditor.add_finding(
-            title="BitLocker",
-            status="PASS",
-            severity="INFO",
-            category="Data Protection",
-            details="La unidad C: está completamente cifrada y la protección BitLocker está activa.",
-            recommendation="Mantener BitLocker activo y validar periódicamente el estado de protección.",
-            reference="Microsoft Security Baseline / CIS Windows Benchmark",
-            impact="El cifrado y la protección activa reducen el riesgo de exposición de datos ante pérdida o acceso físico.",
-            compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
+    if volume_status == "FULLYENCRYPTED" and protection_status == "ON":
+        status, severity = "PASS", "INFO"
+        details = "La unidad C: está completamente cifrada y la protección BitLocker está activa."
+        recommendation = "Mantener BitLocker activo y validar periódicamente el estado de protección."
+        confidence = "HIGH"
+    elif volume_status == "FULLYENCRYPTED" and protection_status != "ON":
+        status, severity = "WARNING", "HIGH"
+        details = "La unidad C: está cifrada, pero la protección BitLocker no está activa."
+        recommendation = "Verificar y activar la protección BitLocker antes de considerar el control conforme."
+        confidence = "HIGH"
+    elif volume_status == "FULLYDECRYPTED":
+        status, severity = "FAIL", "HIGH"
+        details = "La unidad C: no está cifrada con BitLocker."
+        recommendation = "Activar BitLocker en la unidad del sistema para proteger los datos almacenados."
+        confidence = "HIGH"
+    else:
+        status, severity = "WARNING", "MEDIUM"
+        details = (
+            f"Estado de BitLocker no concluyente: volumen={volume_status}, "
+            f"protección={protection_status}."
         )
-        return
-
-    if fully_encrypted and not protection_enabled:
-        auditor.add_finding(
-            title="BitLocker",
-            status="WARNING",
-            severity="HIGH",
-            category="Data Protection",
-            details="La unidad C: está cifrada, pero no se confirmó que la protección BitLocker esté activa.",
-            recommendation="Verificar y activar la protección BitLocker antes de considerar el control conforme.",
-            reference="Microsoft Security Baseline / CIS Windows Benchmark",
-            impact="Una unidad cifrada con la protección suspendida puede ofrecer menor protección frente a acceso físico.",
-            confidence="MEDIUM",
-            compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
-        )
-        return
-
-    if fully_decrypted:
-        auditor.add_finding(
-            title="BitLocker",
-            status="FAIL",
-            severity="HIGH",
-            category="Data Protection",
-            details="La unidad C: no está cifrada con BitLocker.",
-            recommendation="Activar BitLocker en la unidad del sistema para proteger los datos almacenados.",
-            reference="Microsoft Security Baseline / CIS Windows Benchmark",
-            impact="Los datos quedan más expuestos ante pérdida, robo o acceso físico no autorizado.",
-            compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
-        )
-        return
+        recommendation = "Revisar el estado de BitLocker y repetir la auditoría."
+        confidence = "MEDIUM"
 
     auditor.add_finding(
         title="BitLocker",
-        status="WARNING",
-        severity="MEDIUM",
+        status=status,
+        severity=severity,
         category="Data Protection",
-        details="La salida de manage-bde no permitió determinar con suficiente confianza el estado completo de BitLocker.",
-        recommendation="Revisar manualmente el estado de BitLocker y repetir la auditoría con permisos adecuados.",
+        details=details,
+        recommendation=recommendation,
         reference="Microsoft Security Baseline / CIS Windows Benchmark",
-        impact="Un estado de cifrado no verificable impide confirmar la protección efectiva de los datos.",
-        confidence="LOW",
+        impact="El cifrado y la protección activa reducen el riesgo de exposición de datos ante pérdida o acceso físico.",
+        confidence=confidence,
         compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
     )
