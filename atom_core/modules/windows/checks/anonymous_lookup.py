@@ -3,12 +3,12 @@ from atom_core.modules.windows.checks._registry import read_registry_value
 
 
 def audit_anonymous_lookup(auditor: BaseAuditor) -> None:
-    """Verify anonymous-session restrictions using a typed registry value."""
+    """Verifica las restricciones de sesiones anónimas mediante el Registro."""
     auditor.log("Evaluando Null Sessions...")
 
     success, exists, value = read_registry_value(
         auditor,
-        r"HKLM:\SYSTEM\CurrentControlSet\Control\Lsa",
+        r"HKLM:\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters",
         "RestrictNullSessAccess",
         "Anonymous Lookup Check",
     )
@@ -21,7 +21,7 @@ def audit_anonymous_lookup(auditor: BaseAuditor) -> None:
             status="WARNING",
             severity="MEDIUM",
             category="Network Security",
-            details="No se encontró configuración explícita de RestrictNullSessAccess.",
+            details="No se encontró configuración explícita de RestrictNullSessAccess en la ruta del servicio LanmanServer.",
             recommendation="Verificar la política efectiva y configurar restricciones contra acceso anónimo.",
             reference="Microsoft Security Baseline / CIS Windows Benchmark",
             impact="La ausencia del valor explícito requiere verificar el comportamiento efectivo de Windows.",
@@ -38,7 +38,7 @@ def audit_anonymous_lookup(auditor: BaseAuditor) -> None:
             severity="HIGH",
             category="Execution Error",
             details="El valor RestrictNullSessAccess no es un entero interpretable.",
-            recommendation="Verificar la configuración LSA y repetir la auditoría.",
+            recommendation="Verificar la configuración del servicio LanmanServer y repetir la auditoría.",
             confidence="LOW",
         )
         return
@@ -50,7 +50,7 @@ def audit_anonymous_lookup(auditor: BaseAuditor) -> None:
             severity="INFO",
             category="Network Security",
             details="Las restricciones contra acceso anónimo están activadas.",
-            recommendation="Mantener las restricciones LSA para reducir la enumeración anónima.",
+            recommendation="Mantener las restricciones para reducir la enumeración anónima.",
             reference="Microsoft Security Baseline / CIS Windows Benchmark",
             impact="Las restricciones reducen la exposición de información a usuarios no autenticados.",
             compliance=["CIS Controls v8 - Control 4", "NIST SP 800-53 AC-3"],
