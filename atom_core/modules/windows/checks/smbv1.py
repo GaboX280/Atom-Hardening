@@ -7,10 +7,10 @@ def audit_smbv1(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     comando = 'powershell -Command "(Get-SmbServerConfiguration).EnableSMB1Protocol"'
 
-    _command_result_1 = auditor._run_command(comando).strip().upper()
+    _command_result_1 = auditor._run_command(comando)
     if auditor._record_command_error(_command_result_1, "Smbv1 Check"):
         return
-    resultado = _command_result_1.stdout
+    resultado = _command_result_1.stdout.strip().upper()
 
     if "TRUE" in resultado:
         auditor.add_finding(
