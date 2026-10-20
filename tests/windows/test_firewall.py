@@ -58,6 +58,18 @@ def test_firewall_passes_with_structured_output_independent_of_os_language(audit
     assert isinstance(auditor._run_command.call_args.args[0], list)
 
 
+def test_firewall_accepts_windows_powershell_numeric_booleans(auditor: Mock) -> None:
+    run_check(
+        auditor,
+        '[{"Name":"Domain","Enabled":1},'
+        '{"Name":"Private","Enabled":1},'
+        '{"Name":"Public","Enabled":1}]',
+    )
+    finding = auditor.add_finding.call_args.kwargs
+    assert finding["status"] == "PASS"
+    assert finding["confidence"] == "HIGH"
+
+
 def test_firewall_fails_when_any_profile_is_disabled(auditor: Mock) -> None:
     run_check(
         auditor,
