@@ -2,8 +2,8 @@ import json
 import platform
 import shutil
 import subprocess
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 
 from atom_core.models.finding import Finding
