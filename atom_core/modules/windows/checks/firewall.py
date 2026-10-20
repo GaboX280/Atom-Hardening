@@ -26,8 +26,10 @@ def audit_firewall(auditor: BaseAuditor) -> None:
         profiles = json.loads(result.stdout)
         if isinstance(profiles, dict):
             profiles = [profiles]
-        if not isinstance(profiles, list) or not profiles:
-            raise ValueError("La consulta no devolvió una lista de perfiles.")
+        if not isinstance(profiles, list):
+            raise TypeError("La consulta no devolvió una lista de perfiles.")
+        if not profiles:
+            raise ValueError("La consulta no devolvió perfiles.")
 
         normalized = {}
         for profile in profiles:
