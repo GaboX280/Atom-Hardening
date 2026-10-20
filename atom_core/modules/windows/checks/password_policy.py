@@ -38,7 +38,7 @@ finally {
         policy = json.loads(result.stdout)
         minimum_length = policy["minimum_password_length"]
         if isinstance(minimum_length, bool) or not isinstance(minimum_length, int):
-            raise ValueError("minimum_password_length no es un entero.")
+            raise TypeError("minimum_password_length no es un entero.")
         if minimum_length < 0:
             raise ValueError("La longitud mínima no puede ser negativa.")
     except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
