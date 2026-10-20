@@ -8,10 +8,10 @@ def audit_permissions(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
     archivos = ["/etc/passwd", "/etc/shadow", "/etc/sudoers"]
 
     for archivo in archivos:
-        _command_result_1 = auditor._run_command(f"stat -c '%a' {archivo}").strip()
+        _command_result_1 = auditor._run_command(f"stat -c '%a' {archivo}")
         if auditor._record_command_error(_command_result_1, "File Permissions Check"):
             continue
-        permisos = _command_result_1.stdout
+        permisos = _command_result_1.stdout.strip()
 
         if permisos.startswith("ERROR"):
             auditor.add_finding(
