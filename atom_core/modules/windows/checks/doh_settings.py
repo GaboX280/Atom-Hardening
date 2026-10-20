@@ -1,61 +1,57 @@
 from atom_core.base_auditor import BaseAuditor
+from atom_core.modules.windows.checks._registry import read_registry_value
 
 
-def audit_doh_settings(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-    """
-    Verifica configuración de DNS over HTTPS.
-    """
-
+def audit_doh_settings(auditor: BaseAuditor) -> None:
+    """Check DNS-over-HTTPS configuration using a typed registry value."""
     auditor.log("Verificando DNS over HTTPS...")
 
-    comando = (
-        "powershell -Command "
-        '"Get-ItemProperty '
-        "-Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters' "
-        "-Name 'EnableAutoDoh' "
-        '-ErrorAction SilentlyContinue"'
+    success, exists, value = read_registry_value(
+        auditor,
+        r"HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters",
+        "EnableAutoDoh",
+        "Doh Settings Check",
     )
-
-    _command_result_1 = auditor._run_command(comando)
-    if auditor._record_command_error(_command_result_1, "Doh Settings Check"):
+    if not success:
         return
-    resultado = _command_result_1.stdout.upper()
 
-    if "ENABLEAUTODOH" in resultado and ": 2" in resultado:
+    try:
+        doh_value = int(value) if exists else None
+    except (TypeError, ValueError):
+        auditor.add_finding(
+            title="DNS over HTTPS",
+            status="ERROR",
+            severity="HIGH",
+            category="Execution Error",
+            details="El valor EnableAutoDoh no es un entero interpretable.",
+            recommendation="Verificar la configuración de DNS over HTTPS y repetir la auditoría.",
+            confidence="LOW",
+        )
+        return
+
+    if doh_value == 2:
         auditor.add_finding(
             title="DNS over HTTPS",
             status="PASS",
             severity="INFO",
             category="Network Security",
-            details=("DNS over HTTPS está habilitado."),
-            recommendation=(
-                "Mantener DNS seguro cuando sea compatible "
-                "con la infraestructura existente."
-            ),
-            reference=("Microsoft Security Baseline"),
-            impact=(
-                "DNS over HTTPS protege las consultas DNS contra "
-                "interceptación y manipulación durante el tránsito."
-            ),
+            details="EnableAutoDoh tiene el valor que indica habilitación de DoH.",
+            recommendation="Mantener la configuración si es compatible con la infraestructura.",
+            reference="Microsoft documentation",
+            impact="DNS over HTTPS puede proteger las consultas DNS durante el tránsito.",
             compliance=["NIST SP 800-53 SC-8"],
         )
-
     else:
+        state = "no está configurado explícitamente" if not exists else f"tiene el valor {doh_value}"
         auditor.add_finding(
             title="DNS over HTTPS",
             status="WARNING",
             severity="LOW",
             category="Network Security",
-            details=("DNS over HTTPS no está habilitado o configurado."),
-            recommendation=(
-                "Evaluar habilitar DNS over HTTPS según las políticas "
-                "de seguridad y compatibilidad de la organización."
-            ),
-            reference=("Microsoft Security Baseline"),
-            impact=(
-                "Las consultas DNS sin protección adicional pueden "
-                "ser observadas o manipuladas dependiendo del entorno "
-                "de red."
-            ),
+            details=f"DNS over HTTPS no se confirmó como habilitado: EnableAutoDoh {state}.",
+            recommendation="Verificar la configuración efectiva de DoH y las políticas aplicables.",
+            reference="Microsoft documentation",
+            impact="No se pudo confirmar que las consultas DNS usen DNS over HTTPS.",
+            confidence="MEDIUM",
             compliance=["NIST SP 800-53 SC-8"],
         )
