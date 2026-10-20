@@ -4,7 +4,7 @@ from atom_core.models.finding import Finding
 
 
 class SecurityScore:
-    """Calculate a bounded security posture score from normalized findings."""
+    """Calcula una puntuación acotada a partir de hallazgos normalizados."""
 
     PENALTIES: ClassVar[dict[str, int]] = {
         "CRITICAL": 60,
@@ -14,19 +14,13 @@ class SecurityScore:
         "INFO": 0,
     }
 
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    ORANGE = "\033[33m"
-    RED = "\033[91m"
-    RESET = "\033[0m"
-
     @classmethod
     def calculate(cls, findings: list[Finding]) -> int:
-        """Return a score from 0 to 100 based on actionable findings.
+        """Calcula una puntuación entre 0 y 100.
 
-        PASS and ERROR do not reduce the score. ERROR means the check could not
-        evaluate the system and must remain visible in the summary without being
-        treated as a discovered security weakness.
+        Los hallazgos PASS y ERROR no reducen la puntuación. ERROR indica que
+        el control no pudo evaluar el sistema y no confirma por sí mismo una
+        debilidad de seguridad.
         """
         score = 100
 
@@ -34,28 +28,26 @@ class SecurityScore:
             if finding.status in {"PASS", "ERROR"}:
                 continue
 
+            severity = finding.severity.upper()
             penalty = (
                 finding.severity_score
                 if finding.severity_score > 0
-                else cls.PENALTIES[finding.severity]
+                else cls.PENALTIES.get(severity, 5)
             )
             score -= penalty
 
         return max(0, min(100, score))
 
-    @classmethod
-    def rating(cls, score: int) -> str:
-        """Return the canonical rating and the matching score range."""
+    @staticmethod
+    def rating(score: int) -> str:
+        """Devuelve la clasificación en español sin códigos ANSI."""
         if not 0 <= score <= 100:
-            raise ValueError("score must be between 0 and 100")
+            raise ValueError("score debe estar entre 0 y 100")
 
         if score >= 90:
-            label, minimum, maximum, color = "EXCELENTE", 90, 100, cls.GREEN
-        elif score >= 75:
-            label, minimum, maximum, color = "BUENO", 75, 89, cls.YELLOW
-        elif score >= 50:
-            label, minimum, maximum, color = "MODERADO", 50, 74, cls.ORANGE
-        else:
-            label, minimum, maximum, color = "CRITICO", 0, 49, cls.RED
-
-        return f"{color}{label} ({minimum}-{maximum}){cls.RESET}"
+            return "EXCELENTE (90-100)"
+        if score >= 75:
+            return "BUENO (75-89)"
+        if score >= 50:
+            return "MODERADO (50-74)"
+        return "CRITICO (0-49)"
