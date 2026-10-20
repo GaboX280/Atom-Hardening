@@ -1,34 +1,41 @@
 from atom_core.base_auditor import BaseAuditor
-from atom_core.modules.windows.checks._powershell import run_powershell_json
 
 
 def audit_powershell_policy(auditor: BaseAuditor) -> None:
     """Check the effective PowerShell execution policy."""
     auditor.log("Evaluando directiva de ejecución de PowerShell...")
 
-    script = "ConvertTo-Json -InputObject (Get-ExecutionPolicy) -Compress"
-    success, policy = run_powershell_json(auditor, script, "Powershell Policy Check")
-    if not success:
+    result = auditor._run_command(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "[Console]::Out.Write((Get-ExecutionPolicy).ToString())",
+        ],
+        timeout=10,
+    )
+    if auditor._record_command_error(result, "Powershell Policy Check"):
         return
 
-    if not isinstance(policy, str) or not policy.strip():
+    policy = result.stdout.strip()
+    if not policy:
         auditor.add_finding(
             title="PowerShell Execution Policy",
             status="ERROR",
             severity="HIGH",
             category="Execution Error",
-            details="PowerShell no devolvió una directiva de ejecución reconocible.",
+            details="PowerShell devolvió una respuesta vacía para la directiva de ejecución.",
             recommendation="Verificar Get-ExecutionPolicy y repetir la auditoría.",
             confidence="LOW",
         )
         return
 
-    policy = policy.strip()
     normalized = policy.upper()
     if normalized in {"BYPASS", "UNRESTRICTED"}:
         status, severity = "FAIL", "HIGH"
         details = f"Directiva permisiva detectada: {policy}."
-        recommendation = "Evaluar una política más restrictiva, como RemoteSigned o AllSigned, según las necesidades."
+        recommendation = "Evaluar una política más restrictiva según las necesidades del entorno."
     elif normalized in {"RESTRICTED", "ALLSIGNED", "REMOTESIGNED", "DEFAULT", "UNDEFINED"}:
         status, severity = "PASS", "INFO"
         details = f"Directiva actual: {policy}."
