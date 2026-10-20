@@ -15,6 +15,12 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
         r"""
 $ErrorActionPreference = 'Stop'
 try {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        [Console]::Error.WriteLine('Este control requiere ejecutar Atom-Hardening como administrador.')
+        exit 2
+    }
     $volume = Get-BitLockerVolume -MountPoint 'C:' -ErrorAction Stop
     [pscustomobject]@{
         VolumeStatus = $volume.VolumeStatus.ToString()
