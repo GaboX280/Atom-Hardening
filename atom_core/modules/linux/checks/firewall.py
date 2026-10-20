@@ -103,11 +103,15 @@ def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     if auditor.command_exists("firewall-cmd"):
         _command_result_3 = auditor._run_command("firewall-cmd --state")
-        if auditor._record_command_error(_command_result_3, "Linux Firewall Check"):
+        if auditor._record_command_error(
+            _command_result_3,
+            "Linux Firewall Check",
+            allowed_returncodes=(0, 252),
+        ):
             return
         resultado = _command_result_3.stdout.lower()
 
-        if "running" in resultado:
+        if "running" in resultado and "not running" not in resultado:
             auditor.add_finding(
                 title="Linux Firewall Firewalld",
                 status="PASS",
