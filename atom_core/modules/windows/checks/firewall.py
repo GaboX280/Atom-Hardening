@@ -76,7 +76,7 @@ try {
     disabled = [name for name, enabled in normalized if not enabled]
     if disabled:
         status, severity = "FAIL", "HIGH"
-        details = "Perfiles del firewall desactivados: " + ", ".join(sorted(disabled))
+        details = "Perfiles del firewall desactivados: " + ", ".join(name.upper() for name in sorted(disabled))
         recommendation = "Activar Windows Firewall en todos los perfiles y revisar sus reglas."
     else:
         status, severity = "PASS", "INFO"
