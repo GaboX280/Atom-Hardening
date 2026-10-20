@@ -1,59 +1,65 @@
 from atom_core.base_auditor import BaseAuditor
+from atom_core.modules.windows.checks._registry import read_registry_value
 
 
-def audit_uac(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-
+def audit_uac(auditor: BaseAuditor) -> None:
+    """Check UAC elevation prompting using a typed registry value."""
     auditor.log("Evaluando configuración UAC...")
 
-    comando = (
-        "powershell -Command "
-        '"Get-ItemProperty '
-        "-Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' "
-        "-Name 'ConsentPromptBehaviorAdmin'"
-        '"'
+    success, exists, value = read_registry_value(
+        auditor,
+        r"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+        "ConsentPromptBehaviorAdmin",
+        "Uac Check",
     )
-
-    _command_result_1 = auditor._run_command(comando)
-    if auditor._record_command_error(_command_result_1, "Uac Check"):
+    if not success:
         return
-    resultado = _command_result_1.stdout.upper()
 
-    if ": 0" in resultado or ":0" in resultado:
+    if not exists:
         auditor.add_finding(
             title="User Account Control (UAC)",
-            status="FAIL",
-            severity="HIGH",
+            status="WARNING",
+            severity="MEDIUM",
             category="Privilege Management",
-            details=(
-                "UAC está configurado en un nivel inseguro. "
-                "Las elevaciones administrativas pueden ejecutarse "
-                "sin solicitar confirmación."
-            ),
-            recommendation=(
-                "Habilitar solicitudes de elevación UAC y mantener "
-                "la configuración recomendada por Microsoft."
-            ),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Una configuración insegura de UAC facilita que malware "
-                "o usuarios con acceso limitado puedan ejecutar acciones "
-                "con privilegios elevados."
-            ),
+            details="No se encontró el valor explícito ConsentPromptBehaviorAdmin.",
+            recommendation="Verificar la configuración efectiva de UAC y las políticas aplicadas.",
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact="No se pudo confirmar el comportamiento de las solicitudes de elevación.",
+            confidence="LOW",
             compliance=["CIS Controls v8 - Control 5", "NIST SP 800-53 AC-6"],
         )
+        return
 
+    try:
+        prompt_behavior = int(value)
+    except (TypeError, ValueError):
+        prompt_behavior = -1
+
+    if prompt_behavior == 0:
+        status, severity = "FAIL", "HIGH"
+        details = "UAC permite elevaciones administrativas sin solicitar confirmación."
+        recommendation = "Configurar UAC para solicitar confirmación o credenciales durante la elevación."
+        confidence = "HIGH"
+    elif prompt_behavior in {1, 2, 3, 4, 5}:
+        status, severity = "PASS", "INFO"
+        details = f"UAC tiene configurado ConsentPromptBehaviorAdmin={prompt_behavior}."
+        recommendation = "Mantener una configuración de UAC adecuada para el entorno."
+        confidence = "MEDIUM"
     else:
-        auditor.add_finding(
-            title="User Account Control (UAC)",
-            status="PASS",
-            severity="INFO",
-            category="Privilege Management",
-            details=("Configuración UAC segura."),
-            recommendation=("Mantener la configuración recomendada de UAC."),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "UAC correctamente configurado reduce ejecuciones "
-                "no autorizadas con privilegios administrativos."
-            ),
-            compliance=["CIS Controls v8 - Control 5", "NIST SP 800-53 AC-6"],
-        )
+        status, severity = "ERROR", "HIGH"
+        details = f"Valor ConsentPromptBehaviorAdmin desconocido: {value!r}."
+        recommendation = "Verificar el valor de configuración de UAC."
+        confidence = "LOW"
+
+    auditor.add_finding(
+        title="User Account Control (UAC)",
+        status=status,
+        severity=severity,
+        category="Privilege Management",
+        details=details,
+        recommendation=recommendation,
+        reference="Microsoft Security Baseline / CIS Windows Benchmark",
+        impact="UAC correctamente configurado reduce ejecuciones no autorizadas con privilegios administrativos.",
+        confidence=confidence,
+        compliance=["CIS Controls v8 - Control 5", "NIST SP 800-53 AC-6"],
+    )
