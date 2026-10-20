@@ -110,7 +110,6 @@ def test_base_auditor_run_command_reports_timeout_as_error() -> None:
     assert auditor.report[0].status == "ERROR"
 
 
-
 def test_base_auditor_run_command_reports_missing_executable() -> None:
     """Verifica que un ejecutable inexistente se registre como error."""
     auditor = DummyAuditor()
