@@ -52,7 +52,7 @@ def test_main_version(capsys: pytest.CaptureFixture[str]) -> None:
         assert exc_info.value.code == 0
 
     captured = capsys.readouterr()
-    assert "ATOM v1.2.0" in captured.out
+    assert "ATOM v1.3.0" in captured.out
 
 
 def test_main_scan_execution() -> None:
