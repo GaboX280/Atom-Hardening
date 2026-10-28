@@ -1,6 +1,7 @@
 """Terminal interface for Atom."""
 
 import logging
+import math
 import platform
 import sys
 
@@ -30,6 +31,7 @@ class AtomInterface:
 
     def __init__(self) -> None:
         self.console = Console()
+        self.atom_art = self._build_atom_art()
         self.figlet: Figlet | None = None
         for font_name in (self.FONT, "standard", "small"):
             try:
@@ -38,13 +40,114 @@ class AtomInterface:
             except Exception as exc:  # noqa: BLE001
                 logger.debug("Could not load Figlet font %s: %s", font_name, exc)
 
+    @staticmethod
+    def _build_atom_art() -> Text:
+        """Draw three intersecting electron orbits in terminal Braille cells."""
+        width, height = 46, 40
+        radius_x, radius_y = 21.5, 7.0
+        center_x, center_y = (width - 1) / 2, (height - 1) / 2
+        angles = (0.0, math.pi / 3, -math.pi / 3)
+        orbit_styles = ("bright_blue", "bright_cyan", "cyan")
+        pixels: list[list[set[int]]] = [
+            [set() for _ in range(width)] for _ in range(height)
+        ]
+
+        # Each Braille character contains a 2-by-4 grid of dots. Sampling the
+        # ellipses at sub-character resolution produces smoother curves than
+        # hand-typed slashes and backslashes.
+        samples = 4000
+        for orbit_id, angle in enumerate(angles):
+            cos_angle = math.cos(angle)
+            sin_angle = math.sin(angle)
+            for sample in range(samples):
+                theta = math.tau * sample / samples
+                x = (
+                    radius_x * math.cos(theta) * cos_angle
+                    - radius_y * math.sin(theta) * sin_angle
+                )
+                y = (
+                    radius_x * math.cos(theta) * sin_angle
+                    + radius_y * math.sin(theta) * cos_angle
+                )
+                col = round(center_x + x)
+                row = round(center_y + y)
+                if 0 <= col < width and 0 <= row < height:
+                    pixels[row][col].add(orbit_id)
+
+        # Put one electron on each orbit, plus a brighter nucleus in the center.
+        electrons: dict[tuple[int, int], tuple[str, str]] = {}
+        electron_angles = (0.55, 2.6, 4.65)
+        for orbit_id, (angle, theta) in enumerate(zip(angles, electron_angles, strict=True)):
+            x = (
+                radius_x * math.cos(theta) * math.cos(angle)
+                - radius_y * math.sin(theta) * math.sin(angle)
+            )
+            y = (
+                radius_x * math.cos(theta) * math.sin(angle)
+                + radius_y * math.sin(theta) * math.cos(angle)
+            )
+            char_position = (
+                round(center_x + x) // 2,
+                round(center_y + y) // 4,
+            )
+            electrons[char_position] = ("●", "bold white")
+
+        nucleus_position = (round(center_x) // 2, round(center_y) // 4)
+        electrons[nucleus_position] = ("●", "bold bright_cyan")
+
+        # Unicode Braille bit positions, indexed by (row, column).
+        braille_bits = {
+            (0, 0): 0,
+            (1, 0): 1,
+            (2, 0): 2,
+            (3, 0): 6,
+            (0, 1): 3,
+            (1, 1): 4,
+            (2, 1): 5,
+            (3, 1): 7,
+        }
+        art = Text(justify="center", no_wrap=True)
+        char_rows, char_cols = height // 4, width // 2
+
+        for char_row in range(char_rows):
+            for char_col in range(char_cols):
+                position = (char_col, char_row)
+                overlay = electrons.get(position)
+                if overlay is not None:
+                    character, style = overlay
+                    art.append(character, style=style)
+                    continue
+
+                bits = 0
+                orbit_counts = [0, 0, 0]
+                for dot_row in range(4):
+                    for dot_col in range(2):
+                        active_orbits = pixels[char_row * 4 + dot_row][
+                            char_col * 2 + dot_col
+                        ]
+                        if active_orbits:
+                            bits |= 1 << braille_bits[(dot_row, dot_col)]
+                            for orbit_id in active_orbits:
+                                orbit_counts[orbit_id] += 1
+
+                if bits:
+                    dominant_orbit = max(range(3), key=orbit_counts.__getitem__)
+                    art.append(chr(0x2800 + bits), style=orbit_styles[dominant_orbit])
+                else:
+                    art.append(" ")
+
+            if char_row < char_rows - 1:
+                art.append("\n")
+
+        return art
+
     def clear_screen(self) -> None:
         """Clear the terminal using Rich's cross-platform console support."""
         if self.console.is_terminal:
             self.console.clear()
 
     def show_banner(self) -> None:
-        """Render a clean brand header with a recognizable atom symbol."""
+        """Render the ATOM wordmark and a drawn atomic-orbit mark."""
         logo_text: str | None = None
         if self.figlet is not None:
             try:
@@ -57,7 +160,7 @@ class AtomInterface:
 
         header = Table.grid(expand=True, padding=(0, 0))
         header.add_column(justify="center")
-        header.add_row(Text("⚛", style="bold bright_cyan", justify="center"))
+        header.add_row(self.atom_art)
         header.add_row(Text(logo_text, style="bold bright_cyan", justify="center"))
         header.add_row(
             Text(
