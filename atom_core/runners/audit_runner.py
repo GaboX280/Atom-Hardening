@@ -2,6 +2,8 @@
 
 from typing import ClassVar
 
+from rich.console import Console
+
 from atom_core.auditor_factory import AuditorFactory
 from atom_core.core.security_score import SecurityScore
 from atom_core.core.security_summary import SecuritySummary
@@ -26,7 +28,7 @@ class AuditRunner:
         """Run the selected audit and generate the requested report formats."""
         if option != "1":
             if not quiet:
-                print("[!] Auditoría inválida")
+                Console().print("[bold yellow][!] Auditoría inválida[/]")
             return None
 
         target_fmt = fmt.lower()
@@ -34,11 +36,23 @@ class AuditRunner:
             raise ValueError(f"Formato de reporte no soportado: {fmt}")
 
         auditor = AuditorFactory.get_auditor()
-        findings = auditor.ejecutar()
+        console = Console()
+        if quiet:
+            findings = auditor.ejecutar()
+        else:
+            console.print()
+            with console.status(
+                "[bold bright_cyan]Ejecutando comprobaciones de seguridad…[/]",
+                spinner="dots",
+                spinner_style="bright_blue",
+            ):
+                findings = auditor.ejecutar()
 
         if not findings:
             if not quiet:
-                print("[!] El auditor no devolvió resultados.")
+                console.print(
+                    "[bold yellow][!] El auditor no devolvió resultados.[/]"
+                )
             return None
 
         summary = SecuritySummary.summarize(findings)
@@ -71,8 +85,15 @@ class AuditRunner:
             )
 
         if not quiet and reports:
-            print("\n[+] Reportes generados:")
+            report_table = Table(
+                title="GENERATED REPORTS",
+                header_style="bold bright_cyan",
+                border_style="blue",
+            )
+            report_table.add_column("Format", style="bright_cyan")
+            report_table.add_column("Location", overflow="fold")
             for report_type, report_path in reports.items():
-                print(f"    {report_type.upper():<4}: {report_path}")
+                report_table.add_row(report_type.upper(), report_path)
+            console.print(report_table)
 
         return reports
