@@ -62,6 +62,15 @@ def test_bitlocker_passes_when_encrypted_and_protected(auditor: Mock) -> None:
     assert finding["severity"] == "INFO"
 
 
+def test_bitlocker_passes_when_encrypted_and_protected_in_spanish(auditor: Mock) -> None:
+    run_check(
+        auditor,
+        "Estado de conversión: Cifrado completo\nEstado de protección: Protección activada",
+    )
+    finding = auditor.add_finding.call_args.kwargs
+    assert finding["status"] == "PASS"
+
+
 def test_bitlocker_warns_when_encrypted_but_protection_is_off(auditor: Mock) -> None:
     run_check(
         auditor,
@@ -72,8 +81,31 @@ def test_bitlocker_warns_when_encrypted_but_protection_is_off(auditor: Mock) -> 
     assert finding["severity"] == "HIGH"
 
 
+def test_bitlocker_warns_when_encrypted_but_protection_is_off_in_spanish(auditor: Mock) -> None:
+    run_check(
+        auditor,
+        "Estado de conversión: Cifrado completo\nEstado de protección: Protección desactivada",
+    )
+    finding = auditor.add_finding.call_args.kwargs
+    assert finding["status"] == "WARNING"
+    assert finding["severity"] == "HIGH"
+
+
 def test_bitlocker_fails_when_fully_decrypted(auditor: Mock) -> None:
     run_check(auditor, "Conversion Status: Fully Decrypted")
+    finding = auditor.add_finding.call_args.kwargs
+    assert finding["status"] == "FAIL"
+    assert finding["severity"] == "HIGH"
+
+
+def test_bitlocker_fails_when_fully_decrypted_in_spanish(auditor: Mock) -> None:
+    run_check(
+        auditor,
+        "Estado de conversión: Descifrado completo\n"
+        "Porcentaje cifrado: 0,0%\n"
+        "Método de cifrado: Ninguno\n"
+        "Estado de protección: Protección desactivada",
+    )
     finding = auditor.add_finding.call_args.kwargs
     assert finding["status"] == "FAIL"
     assert finding["severity"] == "HIGH"
