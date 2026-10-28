@@ -65,3 +65,45 @@ def test_inactive_ufw_without_alternate_backend_is_warning(monkeypatch) -> None:
     assert len(auditor.report) == 1
     assert auditor.report[0].status == "WARNING"
     assert "UFW está instalado pero deshabilitado" in auditor.report[0].details
+
+
+
+def test_permissive_nftables_ruleset_is_not_a_pass(monkeypatch) -> None:
+    """Una cadena con política accept no demuestra filtrado efectivo."""
+    auditor = make_auditor(
+        monkeypatch,
+        {
+            "nft": (
+                "table inet filter {\\n"
+                " chain input { type filter hook input priority filter; policy accept; }\\n"
+                "}"
+            )
+        },
+    )
+
+    audit_firewall(auditor)
+
+    assert len(auditor.report) == 1
+    assert auditor.report[0].status == "WARNING"
+    assert "drop/reject" in auditor.report[0].details
+
+
+def test_firewalld_is_checked_after_permissive_nftables(monkeypatch) -> None:
+    """Un ruleset nftables permisivo no debe ocultar otro backend activo."""
+    auditor = make_auditor(
+        monkeypatch,
+        {
+            "nft": (
+                "table inet filter {\\n"
+                " chain input { type filter hook input priority filter; policy accept; }\\n"
+                "}"
+            ),
+            "firewall-cmd": "running",
+        },
+    )
+
+    audit_firewall(auditor)
+
+    assert len(auditor.report) == 1
+    assert auditor.report[0].status == "PASS"
+    assert auditor.report[0].title == "Linux Firewall Firewalld"
