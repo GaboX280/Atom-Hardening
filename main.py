@@ -1,8 +1,4 @@
-"""Modulo principal de ATOM.
-
-Este módulo contiene la función main() que sirve como punto de entrada
-para la ejecución del programa, soportando modo interactivo y banderas CLI.
-"""
+"""Punto de entrada de ATOM (CLI e interfaz interactiva)."""
 
 import argparse
 import json
@@ -13,34 +9,32 @@ import sys
 from atom_core.interface.interface import AtomInterface
 from atom_core.runners.audit_runner import AuditRunner
 
-VERSION = "1.2.0"
+VERSION = "2.0.0"
+AVAILABLE_AUDIT_IDS = ("1",)
 
 
 def load_config() -> dict:
-    """Carga config.json de la raíz del proyecto."""
+    """Load config.json from the project root."""
     cfg_path = os.path.join(os.path.dirname(__file__), "config.json")
     try:
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
+        with open(cfg_path, "r", encoding="utf-8") as file:
+            data = json.load(file)
+            return data if isinstance(data, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {}
 
 
 def clear_screen() -> None:
-    """Limpia la terminal según el sistema operativo."""
-    subprocess.run(  # noqa: PLW1510
-        "cls" if os.name == "nt" else "clear", shell=True
-    )
+    """Clear the terminal according to the host operating system."""
+    subprocess.run("cls" if os.name == "nt" else "clear", shell=True, check=False)
 
 
 def interactive_menu(interface: AtomInterface, runner: AuditRunner) -> None:
-    """Bucle principal de la interfaz interactiva."""
+    """Run the interactive Atom menu."""
     options = interface.get_options()
     try:
         while True:
-            interface.clear_screen()
-            interface.show_menu()
-
+            interface.show_menu(audit_available=runner.last_findings is not None)
             option = interface.get_choice()
 
             if option.isdigit():
@@ -48,22 +42,35 @@ def interactive_menu(interface: AtomInterface, runner: AuditRunner) -> None:
                 if 1 <= option_number <= len(options):
                     selected_option = options[option_number - 1]
                     if selected_option == "Exit":
-                        print("\n[+] Gracias por usar Atom.")
+                        interface.show_notice("Thanks for using ATOM.", kind="success")
                         break
 
-                    runner.run(option)
-                    input("\nPresiona Enter para regresar...")
+                    if selected_option == "View audit results":
+                        # Start the report at the top of a clean terminal instead of
+                        # appending it beneath the main menu.
+                        interface.clear_screen()
+                        runner.show_last_results()
+                        interface.pause("Press Enter to return to the menu...")
+                        continue
+
+                    runner.run(option, show_results=False)
+                    if runner.last_findings is not None:
+                        interface.show_notice(
+                            "Audit completed. Select 'View audit results' to inspect the report.",
+                            kind="success",
+                        )
+                    interface.pause("Press Enter to return to the menu...")
                     continue
 
-            print("\n[!] Opción inválida.")
-            input("\nPresiona Enter para regresar...")
+            interface.show_notice("Invalid option. Choose 1, 2, or 3.", kind="warning")
+            interface.pause("Press Enter to continue...")
 
     except KeyboardInterrupt:
-        print("\n\n[+] Saliendo de Atom (Interrumpido).")
+        interface.show_notice("ATOM interrupted. Closing the console.", kind="warning")
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Construye el parseador de argumentos CLI."""
+    """Build the command-line argument parser."""
     parser = argparse.ArgumentParser(
         description="ATOM - Framework de Auditoría y Hardening de Seguridad Automatizado"
     )
@@ -72,14 +79,14 @@ def build_parser() -> argparse.ArgumentParser:
         "-s",
         "--scan",
         action="store_true",
-        help="Ejecutar escaneo de auditoría directo sin menú interactivo",
+        help="Ejecutar escaneo directo sin menú interactivo",
     )
     parser.add_argument(
         "-f",
         "--format",
         choices=["all", "json", "html", "text", "txt"],
         default="all",
-        help="Formato de reporte de salida (all, json, html, text)",
+        help="Formato de reporte de salida",
     )
     parser.add_argument(
         "-o",
@@ -92,7 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
         "-q",
         "--quiet",
         action="store_true",
-        help="Modo silencioso (suprime banner e impresiones decorativas)",
+        help="Modo silencioso",
     )
     parser.add_argument(
         "-v",
@@ -103,33 +110,34 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", help="Subcomandos disponibles")
 
-    # Subcomando audit
     audit_parser = subparsers.add_parser(
         "audit", help="Ejecutar auditoría (modo automático o interactivo)"
     )
     audit_parser.add_argument(
-        "--audit", type=str, default="1", help="ID de auditoría (por defecto '1')"
+        "--audit",
+        choices=AVAILABLE_AUDIT_IDS,
+        default="1",
+        help="ID de auditoría disponible (actualmente: 1)",
     )
     audit_parser.add_argument(
         "--no-gui", action="store_true", help="Desactivar la UI interactiva"
     )
+    audit_parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Suprimir banner y salida de consola (también disponible después de 'audit')",
+    )
 
-    # Subcomando list
     subparsers.add_parser("list", help="Listar opciones de auditoría disponibles")
-
-    # Subcomando config
-    config_parser = subparsers.add_parser(
-        "config", help="Mostrar configuración actual"
-    )
-    config_parser.add_argument(
-        "--show", action="store_true", default=True, help="Mostrar config.json"
-    )
+    subparsers.add_parser("config", help="Mostrar la configuración actual (config.json)")
 
     return parser
 
 
 def main() -> None:
-    """Punto de entrada principal de ATOM."""
+    """Main application entry point."""
     parser = build_parser()
     args = parser.parse_args()
 
@@ -138,16 +146,13 @@ def main() -> None:
         sys.exit(0)
 
     interface = AtomInterface()
-    runner = AuditRunner()
 
-    # Subcomando list
     if args.command == "list":
         print("Opciones de auditoría disponibles:")
-        for idx, opt in enumerate(interface.get_options(), start=1):
-            print(f"  {idx}. {opt}")
+        for idx, option in enumerate(interface.get_options(), start=1):
+            print(f"  {idx}. {option}")
         return
 
-    # Subcomando config
     if args.command == "config":
         cfg = load_config()
         if not cfg:
@@ -156,21 +161,23 @@ def main() -> None:
             print(json.dumps(cfg, indent=4, ensure_ascii=False))
         return
 
-    # Banderas directas o subcomando audit en modo no-gui/scan
-    if args.scan or (args.command == "audit" and getattr(args, "no_gui", False)):
+    runner = AuditRunner()
+    direct_audit = args.command == "audit" and args.no_gui
+
+    if args.scan or direct_audit:
         if not args.quiet:
             interface.clear_screen()
             interface.show_banner()
             print("[*] Iniciando auditoría automática...")
+        option = args.audit if args.command == "audit" else "1"
         runner.run(
-            option="1",
+            option=option,
             fmt=args.format,
             output_dir=args.output_dir,
             quiet=args.quiet,
         )
         return
 
-    # Flujo interactivo por defecto
     interactive_menu(interface, runner)
 
 

@@ -1,50 +1,97 @@
+import json
+
 from atom_core.base_auditor import BaseAuditor
 
+EXPECTED_PROFILE_COUNT = 3
 
-def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
+def audit_firewall(auditor: BaseAuditor) -> None:
+    """Evaluate Windows Firewall profiles without parsing localized text."""
     auditor.log("Evaluando el estado del Firewall de Windows...")
 
-    resultado = auditor._run_command("netsh advfirewall show allprofiles state")
+    script = r"""
+$ErrorActionPreference = 'Stop'
+try {
+    $profiles = @(Get-NetFirewallProfile -ErrorAction Stop | ForEach-Object {
+        [pscustomobject]@{
+            Name = [string]$_.Name
+            Enabled = [bool]$_.Enabled
+        }
+    })
+    ConvertTo-Json -InputObject $profiles -Compress
+} catch {
+    [Console]::Error.WriteLine($_.Exception.Message)
+    exit 1
+}
+"""
+    result = auditor._run_command(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+        timeout=15,
+    )
+    if auditor._record_command_error(result, "Firewall Check"):
+        return
 
-    if "ON" in resultado.upper():
+    try:
+        profiles = json.loads(result.stdout)
+        if isinstance(profiles, dict):
+            profiles = [profiles]
+        if not isinstance(profiles, list):
+            raise TypeError("La consulta no devolvió una lista de perfiles.")
+        if len(profiles) != EXPECTED_PROFILE_COUNT:
+            raise ValueError(
+                f"Se esperaban {EXPECTED_PROFILE_COUNT} perfiles y se recibieron {len(profiles)}."
+            )
+
+        normalized = []
+        for profile in profiles:
+            if not isinstance(profile, dict):
+                raise TypeError("Formato de perfil no válido.")
+            name = profile.get("Name")
+            enabled = profile.get("Enabled")
+            if not isinstance(name, str):
+                raise TypeError("La respuesta no contiene Name como texto.")
+            # Windows PowerShell puede serializar propiedades booleanas como 0/1.
+            if isinstance(enabled, bool):
+                enabled_value = enabled
+            elif isinstance(enabled, int) and enabled in (0, 1):
+                enabled_value = bool(enabled)
+            else:
+                raise TypeError("La respuesta no contiene Enabled como booleano o 0/1.")
+            normalized.append((name, enabled_value))
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
         auditor.add_finding(
             title="Windows Firewall",
-            status="PASS",
-            severity="INFO",
-            category="Network Security",
-            details=(
-                "El Firewall de Windows está activo en los perfiles configurados."
-            ),
-            recommendation=(
-                "Mantener las reglas del firewall actualizadas "
-                "y revisar configuraciones periódicamente."
-            ),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Un firewall correctamente configurado reduce la exposición "
-                "de servicios no autorizados y limita accesos no deseados."
-            ),
-            compliance=["CIS Controls v8 - Control 13", "NIST SP 800-53 SC-7"],
-        )
-
-    else:
-        auditor.add_finding(
-            title="Windows Firewall",
-            status="FAIL",
+            status="ERROR",
             severity="HIGH",
             category="Network Security",
-            details=(
-                "El Firewall de Windows parece estar desactivado en uno o más perfiles."
-            ),
-            recommendation=(
-                "Activar Windows Firewall en todos los perfiles "
-                "(Domain, Private y Public)."
-            ),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Un firewall deshabilitado aumenta la superficie de ataque "
-                "permitiendo conexiones no filtradas hacia el sistema."
-            ),
+            details=f"No se pudo interpretar la respuesta estructurada del firewall: {exc}",
+            recommendation="Verificar la disponibilidad de Get-NetFirewallProfile y repetir la auditoría.",
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact="No fue posible determinar de forma confiable el estado de los tres perfiles.",
+            confidence="LOW",
             compliance=["CIS Controls v8 - Control 13", "NIST SP 800-53 SC-7"],
         )
+        return
+
+    disabled = [name for name, enabled in normalized if not enabled]
+    if disabled:
+        status, severity = "FAIL", "HIGH"
+        details = "Perfiles del firewall desactivados: " + ", ".join(name.upper() for name in sorted(disabled))
+        recommendation = "Activar Windows Firewall en todos los perfiles y revisar sus reglas."
+    else:
+        status, severity = "PASS", "INFO"
+        details = "Los tres perfiles de Windows Firewall están activos."
+        recommendation = "Mantener las reglas del firewall actualizadas y revisarlas periódicamente."
+
+    auditor.add_finding(
+        title="Windows Firewall",
+        status=status,
+        severity=severity,
+        category="Network Security",
+        details=details,
+        recommendation=recommendation,
+        reference="Microsoft Security Baseline / CIS Windows Benchmark",
+        impact="Un firewall correctamente configurado reduce la exposición de servicios no autorizados.",
+        confidence="HIGH",
+        compliance=["CIS Controls v8 - Control 13", "NIST SP 800-53 SC-7"],
+    )

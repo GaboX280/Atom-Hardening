@@ -1,177 +1,231 @@
-"""Modulo para la interfaz de usuario de Atom.
-Proporciona una interfaz de línea de comandos para interactuar con el usuario,
-mostrar banners, menús y recibir entradas.
-La interfaz de usuario es responsable de la presentación visual y la interacción
-con el usuario, mientras que la lógica de auditoría se maneja en otros módulos.
-"""
+"""Terminal interface for Atom."""
 
-# Importacion de librerias necesarias
-import os
+import logging
 import platform
 import sys
-
-# Asegurar salida UTF-8 en consolas Windows
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
+from pathlib import Path
 
 from pyfiglet import Figlet  # type: ignore
+from rich import box
+from rich.align import Align
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
-# =====================================#
-# Clase AtomInterface
-# =====================================#
+logger = logging.getLogger(__name__)
+
+ATOM_ART_PATH = Path(__file__).with_name("atom_art.txt")
+ART_STYLES = {
+    "@": "bold bright_white",
+    "%": "bold bright_cyan",
+    "#": "bright_cyan",
+    "*": "bright_blue",
+    "+": "blue",
+}
 
 
 class AtomInterface:
-    # ===== Tema de Colores =====
+    """Presentation and input layer for the interactive CLI."""
 
-    NAVY = "\033[38;5;18m"
-    BLUE = "\033[38;5;25m"
-    ROYAL = "\033[38;5;33m"
-    SKY = "\033[38;5;39m"
-    LIGHT = "\033[38;5;45m"
+    VERSION = "2.0.0"
+    FONT = "slant"
+    OPTIONS = ("Run security audit", "View audit results", "Exit")
 
-    WHITE = "\033[97m"
-    RED = "\033[91m"
-    RESET = "\033[0m"
-
-    COLORS = (
-        NAVY,
-        BLUE,
-        ROYAL,
-        SKY,
-        LIGHT,
-        SKY,
-        ROYAL,
-        BLUE,
+    OPTION_DETAILS = (
+        "Evaluate endpoint controls and calculate the security score",
+        "Review the latest findings, severity levels, and recommendations",
+        "Close the ATOM console",
     )
 
-    VERSION = "1.2.0"
-    FONT = "smisome1"
-
-    # ========================
-    # OPCIONES DEL MENU
-    # ========================
-
-    OPTIONS = (
-        "System Hardening Audit",
-        "Exit",
-    )
-
-    def __init__(self) -> None: # [TIPADO AÑADIDO] -> None
-
-        self.figlet = None
-        for font_name in (self.FONT, "slant", "standard"):
+    def __init__(self) -> None:
+        self.console = Console()
+        self.atom_art = self._build_atom_art()
+        self.figlet: Figlet | None = None
+        for font_name in (self.FONT, "standard", "small"):
             try:
                 self.figlet = Figlet(font=font_name)
                 break
-            except Exception:  # noqa: BLE001, S112
-                continue
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Could not load Figlet font %s: %s", font_name, exc)
 
-    # ========================
-    # METODO PARA LIMPIAR PANTALLA
-    # ========================
+    @staticmethod
+    def _build_atom_art() -> Text:
+        """Read the original ASCII artwork without resizing or changing spacing."""
+        try:
+            lines = ATOM_ART_PATH.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            logger.warning("Could not load ATOM artwork: %s", exc)
+            lines = [
+                "          .-o-.",
+                "      .-' / | \\ '-.",
+                "   o----- ( @ ) -----o",
+                "      '-. \\ | / .-'",
+                "          '-o-'",
+            ]
 
-    def clear_screen(self) -> None: # [TIPADO AÑADIDO] -> None
+        art = Text(no_wrap=True, overflow="ignore", end="")
+        for line_index, line in enumerate(lines):
+            for character in line:
+                art.append(character, style=ART_STYLES.get(character, "default"))
+            if line_index < len(lines) - 1:
+                art.append("\n")
+        return art
 
-        os.system("cls" if os.name == "nt" else "clear")
+    def clear_screen(self) -> None:
+        """Clear the terminal using Rich's cross-platform console support."""
+        if self.console.is_terminal:
+            self.console.clear()
 
-    # ========================
-    # METODO PARA MOSTRAR GRADIENTE
-    # ========================
-
-    def print_gradient(self, text: str) -> None: # [TIPADO AÑADIDO] -> None
-
-        for i, line in enumerate(text.splitlines()):
-            print(self.COLORS[i % len(self.COLORS)] + line)
-
-        print(self.RESET, end="")
-
-    # ========================
-    # METODO PARA MOSTRAR DIVISOR
-    # ========================
-
-    def divider(self) -> None: # [TIPADO AÑADIDO] -> None
-
-        print("-" * 60)
-
-    # ========================
-    # METODO PARA MOSTRAR BANNER
-    # ========================
-
-    def show_banner(self) -> None: # [TIPADO AÑADIDO] -> None
-
+    def show_banner(self) -> None:
+        """Render the custom atom drawing beside the ATOM wordmark."""
         logo_text: str | None = None
         if self.figlet is not None:
             try:
-                logo_text = str(self.figlet.renderText("ATOM"))
-            except Exception:  # noqa: BLE001
-                logo_text = None
+                logo_text = self.figlet.renderText("ATOM").rstrip()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Could not render Figlet banner: %s", exc)
 
         if not logo_text:
-            logo_text = (
-                "  AAA  TTTTT  OOO  M   M\n"
-                " A   A   T   O   O MM MM\n"
-                " AAAAA   T   O   O M M M\n"
-                " A   A   T   O   O M   M\n"
-                " A   A   T    OOO  M   M\n"
+            logo_text = "A T O M"
+
+        brand = Table.grid(padding=(0, 0))
+        brand.add_column(justify="left")
+        brand.add_row(Text(logo_text, style="bold bright_cyan"))
+        brand.add_row(Text("SECURITY POSTURE MONITOR", style="bold bright_blue"))
+        brand.add_row(
+            Text(
+                f"AUTOMATED SECURITY HARDENING FRAMEWORK  •  v{self.VERSION}",
+                style="dim",
             )
-
-        self.print_gradient(logo_text)
-
-        print(
-            f"{self.LIGHT}          Automated Security Hardening Framework{self.RESET}"
         )
 
-        self.divider()
+        # Keep the original artwork left-aligned and at its exact character size.
+        # Place the wordmark beside it instead of centering both over a wide panel.
+        header = Table.grid(padding=(0, 2))
+        header.add_column(no_wrap=True, justify="left")
+        header.add_column(ratio=1, justify="left")
+        header.add_row(self.atom_art, Align.center(brand, vertical="middle"))
 
-    # ========================
-    # METODO PARA MOSTRAR INFORMACION
-    # ========================
-
-    def show_info(self) -> None: # [TIPADO AÑADIDO] -> None
-
-        print(
-            f"{self.WHITE}"
-            f" Version : {self.VERSION}\n"
-            f" Platform: {platform.system()}\n"
-            f"{self.RESET}"
+        self.console.print(
+            Panel(
+                header,
+                title="[bold bright_blue] ATOM / DEFENSE CONSOLE [/]",
+                border_style="bright_blue",
+                box=box.DOUBLE,
+                padding=(0, 1),
+                expand=False,
+            )
         )
 
-    # ========================
-    # METODO PARA MOSTRAR MENU
-    # ========================
+    @staticmethod
+    def _status_cell(label: str, value: str, value_style: str = "bold white") -> Text:
+        """Build one compact status item with a clear label/value hierarchy."""
+        cell = Text()
+        cell.append(label.upper() + "\n", style="dim")
+        cell.append(value, style=value_style)
+        return cell
 
-    def show_menu(self) -> None: # [TIPADO AÑADIDO] -> None
+    def show_info(self, audit_available: bool = False) -> None:
+        """Show runtime details in a compact three-column status strip."""
+        info = Table.grid(padding=(0, 2))
+        info.add_column(justify="left")
+        info.add_column(justify="left")
+        info.add_column(justify="left")
 
+        audit_state = "Results available" if audit_available else "Not run this session"
+        audit_style = "bold bright_green" if audit_available else "yellow"
+        info.add_row(
+            self._status_cell("Platform", platform.system() or "Unknown"),
+            self._status_cell("Version", self.VERSION, "bold bright_cyan"),
+            self._status_cell("Audit status", audit_state, audit_style),
+        )
+
+        self.console.print(
+            Panel(
+                info,
+                title="[bold bright_cyan] SYSTEM STATUS [/]",
+                border_style="blue",
+                box=box.ROUNDED,
+                padding=(0, 1),
+                expand=False,
+            )
+        )
+
+    def show_menu(self, audit_available: bool = False) -> None:
+        """Display a clear, descriptive main menu."""
         self.clear_screen()
-
         self.show_banner()
+        self.show_info(audit_available=audit_available)
 
-        self.show_info()
+        menu = Table(
+            box=None,
+            show_header=False,
+            show_edge=False,
+            show_lines=False,
+            padding=(0, 1),
+            expand=False,
+        )
+        menu.add_column("ID", width=4, justify="center", no_wrap=True)
+        menu.add_column("ACTION", min_width=22, no_wrap=True)
 
-        for i, option in enumerate(self.OPTIONS, start=1):
-            print(f"{self.LIGHT}[{i}]{self.WHITE} {option}{self.RESET}")
+        for index, option in enumerate(self.OPTIONS, start=1):
+            number = Text(f"{index:02}", style="bold bright_cyan")
+            title = Text(option, style="bold white")
+            menu.add_row(number, title)
 
-        self.divider()
+        self.console.print(
+            Panel(
+                menu,
+                title="[bold bright_blue] MAIN MENU [/]",
+                subtitle="[dim]Choose an action[/]",
+                border_style="bright_blue",
+                box=box.ROUNDED,
+                padding=(0, 1),
+                expand=False,
+            )
+        )
+        self.console.print(
+            Text("Enter 1, 2, or 3 to continue  •  Ctrl+C to quit", style="dim")
+        )
+        self.console.print()
 
-    # ========================
-    # METODO PARA OBTENER OPCIONES
-    # ========================
+    def show_notice(self, message: str, kind: str = "info") -> None:
+        """Display a consistent, styled notice for the interactive workflow."""
+        styles = {
+            "info": ("INFO", "bright_blue"),
+            "success": ("SUCCESS", "bright_green"),
+            "warning": ("WARNING", "yellow"),
+            "error": ("ERROR", "bright_red"),
+        }
+        label, style = styles.get(kind, styles["info"])
+        content = Text()
+        content.append(f"{label}  ", style=f"bold {style}")
+        content.append(message)
+        self.console.print(
+            Panel(
+                content,
+                border_style=style,
+                box=box.ROUNDED,
+                padding=(0, 1),
+                expand=True,
+            )
+        )
 
-    def get_options(self) -> tuple[str, ...]: # [TIPADO AÑADIDO] -> tuple[str, ...]
+    def pause(self, message: str = "Press Enter to return to the menu...") -> None:
+        """Pause without falling back to unstyled input prompts."""
+        self.console.print(f"[dim]{message}[/]")
+        input()
 
+    def get_options(self) -> tuple[str, ...]:
+        """Return the available interactive actions."""
         return self.OPTIONS
 
-    # ========================
-    # METODO PARA OBTENER OPCION
-    # ========================
-
-    def get_choice(self) -> str: # [TIPADO AÑADIDO] -> str
-
+    def get_choice(self) -> str:
+        """Read the user's menu selection."""
         try:
-            return input(f"\n{self.SKY}atom>{self.WHITE} ")
-
+            self.console.print("[bold bright_cyan]ATOM[/] [dim]›[/]", end=" ")
+            return input().strip()
         except KeyboardInterrupt:
-            print(f"\n{self.RED}[!] Exiting Atom...{self.RESET}")
-
-            sys.exit()
+            self.show_notice("ATOM interrupted. Closing the console.", kind="warning")
+            sys.exit(130)

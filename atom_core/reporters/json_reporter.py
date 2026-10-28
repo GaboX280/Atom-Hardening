@@ -14,7 +14,7 @@ class JsonReporter:
         data = {
             "report": {
                 "generated": datetime.datetime.now(
-                    datetime.timezone.utc
+                    datetime.UTC
                 ).isoformat(),
                 "summary": summary,
                 "findings": [finding.to_dict() for finding in findings],
@@ -48,7 +48,7 @@ class JsonReporter:
     @staticmethod
     def _generate_filename(folder):
 
-        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
+        timestamp = datetime.datetime.now(datetime.UTC).strftime(
             "%Y%m%d_%H%M%S"
         )
 

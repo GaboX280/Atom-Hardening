@@ -1,56 +1,65 @@
 from atom_core.base_auditor import BaseAuditor
+from atom_core.modules.windows.checks._registry import read_registry_value
 
 
-def audit_remote_desktop(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-
+def audit_remote_desktop(auditor: BaseAuditor) -> None:
+    """Check Remote Desktop configuration using its typed registry value."""
     auditor.log("Evaluando Escritorio Remoto...")
 
-    comando = (
-        "powershell -Command "
-        '"Get-ItemProperty '
-        "-Path 'HKLM:\\System\\CurrentControlSet\\Control\\Terminal Server' "
-        "-Name 'fDenyTSConnections'"
-        '"'
+    success, exists, value = read_registry_value(
+        auditor,
+        r"HKLM:\System\CurrentControlSet\Control\Terminal Server",
+        "fDenyTSConnections",
+        "Remote Desktop Check",
     )
+    if not success:
+        return
 
-    resultado = auditor._run_command(comando).upper()
-
-    if ": 0" in resultado or ":0" in resultado:
+    if not exists:
         auditor.add_finding(
             title="Remote Desktop (RDP)",
             status="WARNING",
             severity="MEDIUM",
             category="Remote Access",
-            details=("Escritorio Remoto está habilitado."),
-            recommendation=(
-                "Deshabilitar RDP si no es requerido. "
-                "Si es necesario, restringir acceso mediante VPN, "
-                "MFA y reglas de firewall."
-            ),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "RDP expuesto puede ser utilizado para ataques de "
-                "fuerza bruta, robo de credenciales y movimiento "
-                "lateral dentro de la red."
-            ),
+            details="No se encontró el valor explícito fDenyTSConnections.",
+            recommendation="Verificar la configuración efectiva de Escritorio Remoto.",
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact="No se pudo confirmar si RDP está habilitado o deshabilitado.",
+            confidence="LOW",
             compliance=["CIS Controls v8 - Control 6", "NIST SP 800-53 AC-17"],
         )
+        return
 
+    try:
+        deny_connections = int(value)
+    except (TypeError, ValueError):
+        deny_connections = -1
+
+    if deny_connections == 1:
+        status, severity = "PASS", "INFO"
+        details = "Escritorio Remoto está deshabilitado."
+        recommendation = "Mantener el acceso remoto restringido y habilitarlo solo cuando sea necesario."
+        confidence = "HIGH"
+    elif deny_connections == 0:
+        status, severity = "WARNING", "MEDIUM"
+        details = "Escritorio Remoto está habilitado."
+        recommendation = "Deshabilitar RDP si no es requerido; si lo es, restringirlo con VPN, MFA y firewall."
+        confidence = "HIGH"
     else:
-        auditor.add_finding(
-            title="Remote Desktop (RDP)",
-            status="PASS",
-            severity="INFO",
-            category="Remote Access",
-            details=("Escritorio Remoto está deshabilitado."),
-            recommendation=(
-                "Mantener acceso remoto restringido y habilitarlo "
-                "solo cuando sea necesario."
-            ),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Mantener RDP deshabilitado reduce la superficie de "
-                "ataque asociada a servicios remotos."
-            ),
-            compliance=["CIS Controls v8 - Control 6", "NIST SP 800-53 AC-17"],
-        )
+        status, severity = "ERROR", "HIGH"
+        details = f"Valor fDenyTSConnections desconocido: {value!r}."
+        recommendation = "Verificar el valor de configuración de RDP."
+        confidence = "LOW"
+
+    auditor.add_finding(
+        title="Remote Desktop (RDP)",
+        status=status,
+        severity=severity,
+        category="Remote Access",
+        details=details,
+        recommendation=recommendation,
+        reference="Microsoft Security Baseline / CIS Windows Benchmark",
+        impact="RDP habilitado puede aumentar la exposición a ataques de acceso remoto.",
+        confidence=confidence,
+        compliance=["CIS Controls v8 - Control 6", "NIST SP 800-53 AC-17"],
+    )
