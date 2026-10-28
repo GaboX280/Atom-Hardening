@@ -2,7 +2,13 @@ import re
 
 from atom_core.base_auditor import BaseAuditor
 
-STATE_PATTERN = re.compile(r"\bState\s+(ON|OFF)\b", re.IGNORECASE)
+# netsh localizes both the label and the state value on non-English Windows.
+STATE_PATTERN = re.compile(
+    r"\b(?:State|Estado)\s+(ON|OFF|ACTIVAR|DESACTIVAR|ENABLED|DISABLED)\b",
+    re.IGNORECASE,
+)
+ENABLED_STATES = {"ON", "ACTIVAR", "ENABLED"}
+DISABLED_STATES = {"OFF", "DESACTIVAR", "DISABLED"}
 
 
 def audit_firewall(auditor: BaseAuditor) -> None:
@@ -28,7 +34,12 @@ def audit_firewall(auditor: BaseAuditor) -> None:
         )
         return
 
-    states = [state.upper() for state in STATE_PATTERN.findall(resultado)]
+    raw_states = [state.upper() for state in STATE_PATTERN.findall(resultado)]
+    states = [
+        "ON" if state in ENABLED_STATES else "OFF"
+        for state in raw_states
+        if state in ENABLED_STATES or state in DISABLED_STATES
+    ]
 
     if not states:
         auditor.add_finding(
