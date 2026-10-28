@@ -61,7 +61,7 @@ class AtomInterface:
 
         logo = Text(logo_text, style="bold bright_cyan", justify="center")
         atom_art = Text(
-            "\\n".join(
+            "\n".join(
                 (
                     "       .-----.",
                     "    .-'  / \\  '-.",
@@ -83,6 +83,8 @@ class AtomInterface:
         )
         content = Text()
         content.append_text(logo)
+        content.append("\n")
+        content.append_text(atom_art)
         content.append("\n")
         content.append_text(subtitle)
         self.console.print(
