@@ -46,6 +46,9 @@ def interactive_menu(interface: AtomInterface, runner: AuditRunner) -> None:
                         break
 
                     if selected_option == "View audit results":
+                        # Start the report at the top of a clean terminal instead of
+                        # appending it beneath the main menu.
+                        interface.clear_screen()
                         runner.show_last_results()
                         interface.pause("Press Enter to return to the menu...")
                         continue
