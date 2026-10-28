@@ -24,7 +24,7 @@ class AtomInterface:
     def __init__(self) -> None:
         self.console = Console()
         self.figlet: Figlet | None = None
-        for font_name in (self.FONT, "standard"):
+        for font_name in (self.FONT, "slant", "standard"):
             try:
                 self.figlet = Figlet(font=font_name)
                 break
