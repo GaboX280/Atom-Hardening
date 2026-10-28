@@ -1,4 +1,4 @@
-"""Punto de entrada de ATOM (CLI e interfaz interactiva)."""
+"Punto de entrada de ATOM (CLI e interfaz interactiva)."
 
 import argparse
 import json
@@ -10,6 +10,7 @@ from atom_core.interface.interface import AtomInterface
 from atom_core.runners.audit_runner import AuditRunner
 
 VERSION = "1.3.0"
+AVAILABLE_AUDIT_IDS = ("1",)
 
 
 def load_config() -> dict:
@@ -101,20 +102,17 @@ def build_parser() -> argparse.ArgumentParser:
         "audit", help="Ejecutar auditoría (modo automático o interactivo)"
     )
     audit_parser.add_argument(
-        "--audit", type=str, default="1", help="ID de auditoría (por defecto '1')"
+        "--audit",
+        choices=AVAILABLE_AUDIT_IDS,
+        default="1",
+        help="ID de auditoría disponible (actualmente: 1)",
     )
     audit_parser.add_argument(
         "--no-gui", action="store_true", help="Desactivar la UI interactiva"
     )
 
     subparsers.add_parser("list", help="Listar opciones de auditoría disponibles")
-
-    config_parser = subparsers.add_parser(
-        "config", help="Mostrar configuración actual"
-    )
-    config_parser.add_argument(
-        "--show", action="store_true", default=True, help="Mostrar config.json"
-    )
+    subparsers.add_parser("config", help="Mostrar la configuración actual (config.json)")
 
     return parser
 
@@ -129,7 +127,6 @@ def main() -> None:
         sys.exit(0)
 
     interface = AtomInterface()
-    runner = AuditRunner()
 
     if args.command == "list":
         print("Opciones de auditoría disponibles:")
@@ -145,13 +142,17 @@ def main() -> None:
             print(json.dumps(cfg, indent=4, ensure_ascii=False))
         return
 
-    if args.scan or (args.command == "audit" and getattr(args, "no_gui", False)):
+    runner = AuditRunner()
+    direct_audit = args.command == "audit" and args.no_gui
+
+    if args.scan or direct_audit:
         if not args.quiet:
             interface.clear_screen()
             interface.show_banner()
             print("[*] Iniciando auditoría automática...")
+        option = args.audit if args.command == "audit" else "1"
         runner.run(
-            option="1",
+            option=option,
             fmt=args.format,
             output_dir=args.output_dir,
             quiet=args.quiet,
