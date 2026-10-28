@@ -1,3 +1,5 @@
+import re
+
 from atom_core.base_auditor import BaseAuditor
 
 
@@ -39,21 +41,27 @@ def audit_firewall(auditor: BaseAuditor) -> None:
             return
 
         ruleset = result.stdout.strip()
-        if ruleset and ("table inet" in ruleset or "chain" in ruleset.lower()):
+        has_restrictive_rule = any(
+            re.search(r"\\b(drop|reject)\\b", line, re.IGNORECASE)
+            for line in ruleset.splitlines()
+        )
+        if has_restrictive_rule:
             auditor.add_finding(
                 title="Linux Firewall nftables",
                 status="PASS",
                 severity="INFO",
                 category="Network Security",
-                details="nftables posee un ruleset configurado.",
+                details="Se detectaron políticas o reglas drop/reject en nftables.",
                 recommendation="Revisar periódicamente que las reglas filtren el tráfico según la política esperada.",
                 reference="nftables Documentation",
-                impact="Las reglas de nftables pueden filtrar tráfico de red.",
+                impact="Las políticas y reglas de rechazo reducen el tráfico no autorizado.",
                 compliance=["CIS Linux Benchmark"],
             )
             return
 
-        inactive_backends.append("nftables está disponible, pero no se detectaron reglas.")
+        inactive_backends.append(
+            "nftables no presenta reglas drop/reject explícitas; su filtrado efectivo no está confirmado."
+        )
 
     # firewalld
     if auditor.command_exists("firewall-cmd"):
