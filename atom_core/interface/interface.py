@@ -5,6 +5,7 @@ import platform
 import sys
 
 from pyfiglet import Figlet  # type: ignore
+from rich import box
 from rich.align import Align
 from rich.console import Console
 from rich.panel import Panel
@@ -18,13 +19,19 @@ class AtomInterface:
     """Presentation and input layer for the interactive CLI."""
 
     VERSION = "1.3.0"
-    FONT = "smisome1"
+    FONT = "slant"
     OPTIONS = ("Run security audit", "View audit results", "Exit")
+
+    OPTION_DETAILS = (
+        "Evaluate endpoint controls and calculate the security score",
+        "Review the latest findings, severity levels, and recommendations",
+        "Close the ATOM console",
+    )
 
     def __init__(self) -> None:
         self.console = Console()
         self.figlet: Figlet | None = None
-        for font_name in (self.FONT, "slant", "standard"):
+        for font_name in (self.FONT, "standard", "small"):
             try:
                 self.figlet = Figlet(font=font_name)
                 break
@@ -36,16 +43,8 @@ class AtomInterface:
         if self.console.is_terminal:
             self.console.clear()
 
-    def print_gradient(self, text: str) -> None:
-        """Render banner lines with a restrained blue/cyan color progression."""
-        palette = ("bright_blue", "blue", "cyan", "bright_cyan")
-        for index, line in enumerate(text.splitlines()):
-            self.console.print(line, style=palette[index % len(palette)])
-
-    def divider(self) -> None:
-        self.console.rule(style="bright_blue")
-
     def show_banner(self) -> None:
+        """Render a clean brand header with a recognizable atom symbol."""
         logo_text: str | None = None
         if self.figlet is not None:
             try:
@@ -54,92 +53,153 @@ class AtomInterface:
                 logger.debug("Could not render Figlet banner: %s", exc)
 
         if not logo_text:
-            logo_text = """  _  _____ ___  __  __
- / \\|_   _/ _ \\|  \\/  |
-/ _ \\ | || | | | |\\/| |
-/_/ \\_\\|_||_| |_|_|  |_|"""
+            logo_text = "A T O M"
 
-        logo = Text(logo_text, style="bold bright_cyan", justify="center")
-        atom_art = Text(
-            "\n".join(
-                (
-                    "       .-----.",
-                    "    .-'  / \\  '-.",
-                    "  .'    /   \\    '.",
-                    " /-----<  *  >-----\\",
-                    " \\-----<     >-----/",
-                    "  '.    \\   /    .'",
-                    "    '-.  \\ /  .-'",
-                    "       '-----'",
-                )
-            ),
-            style="bright_blue",
-            justify="center",
+        header = Table.grid(expand=True, padding=(0, 0))
+        header.add_column(justify="center")
+        header.add_row(Text("⚛", style="bold bright_cyan", justify="center"))
+        header.add_row(Text(logo_text, style="bold bright_cyan", justify="center"))
+        header.add_row(
+            Text(
+                "SECURITY POSTURE MONITOR",
+                style="bold bright_blue",
+                justify="center",
+            )
         )
-        subtitle = Text(
-            "AUTOMATED SECURITY HARDENING FRAMEWORK",
-            style="bold bright_blue",
-            justify="center",
-        )
-        content = Text()
-        content.append_text(logo)
-        content.append("\n")
-        content.append_text(atom_art)
-        content.append("\n")
-        content.append_text(subtitle)
-        self.console.print(
-            Panel(
-                Align.center(content),
-                border_style="bright_blue",
-                padding=(1, 2),
-                expand=False,
+        header.add_row(
+            Text(
+                f"AUTOMATED SECURITY HARDENING FRAMEWORK  •  v{self.VERSION}",
+                style="dim",
+                justify="center",
             )
         )
 
-    def show_info(self, audit_available: bool = False) -> None:
-        info = Table.grid(padding=(0, 2))
-        info.add_column(style="bright_cyan", justify="right")
-        info.add_column(style="white")
-        info.add_row("VERSION", self.VERSION)
-        info.add_row("PLATFORM", platform.system() or "Unknown")
-        info.add_row("MODE", "Security audit")
-        info.add_row(
-            "AUDIT",
-            "[bright_green]Results available[/]"
-            if audit_available
-            else "[dim]Not run this session[/]",
-        )
         self.console.print(
-            Panel(info, title="[bold bright_blue]SYSTEM[/]", border_style="blue")
+            Panel(
+                header,
+                title="[bold bright_blue] ATOM / DEFENSE CONSOLE [/]",
+                border_style="bright_blue",
+                box=box.DOUBLE,
+                padding=(0, 2),
+                expand=True,
+            )
+        )
+
+    @staticmethod
+    def _status_cell(label: str, value: str, value_style: str = "bold white") -> Text:
+        """Build one compact status item with a clear label/value hierarchy."""
+        cell = Text()
+        cell.append(label.upper() + "\n", style="dim")
+        cell.append(value, style=value_style)
+        return cell
+
+    def show_info(self, audit_available: bool = False) -> None:
+        """Show runtime details in a compact three-column status strip."""
+        info = Table.grid(expand=True, padding=(0, 2))
+        info.add_column(ratio=1, justify="center")
+        info.add_column(ratio=1, justify="center")
+        info.add_column(ratio=1, justify="center")
+
+        audit_state = "Results available" if audit_available else "Not run this session"
+        audit_style = "bold bright_green" if audit_available else "yellow"
+        info.add_row(
+            self._status_cell("Platform", platform.system() or "Unknown"),
+            self._status_cell("Version", self.VERSION, "bold bright_cyan"),
+            self._status_cell("Audit status", audit_state, audit_style),
+        )
+
+        self.console.print(
+            Panel(
+                info,
+                title="[bold bright_cyan] SYSTEM STATUS [/]",
+                border_style="blue",
+                box=box.ROUNDED,
+                padding=(0, 1),
+                expand=True,
+            )
         )
 
     def show_menu(self, audit_available: bool = False) -> None:
+        """Display a clear, descriptive main menu."""
         self.clear_screen()
         self.show_banner()
         self.show_info(audit_available=audit_available)
 
         menu = Table(
-            title="MAIN MENU",
             box=None,
             show_header=False,
-            padding=(0, 2),
+            show_edge=False,
+            show_lines=False,
+            padding=(1, 1),
             expand=True,
         )
-        menu.add_column(style="bold bright_cyan", width=5, justify="right")
-        menu.add_column(style="white")
-        for index, option in enumerate(self.OPTIONS, start=1):
-            menu.add_row(f"[{index}]", option)
-        self.console.print(Panel(menu, border_style="bright_blue", padding=(1, 1)))
-        self.console.print(Align.center("[dim]Select an option and press Enter[/dim]"))
+        menu.add_column("ID", width=5, justify="center", no_wrap=True)
+        menu.add_column("ACTION", min_width=22, no_wrap=True)
+        menu.add_column("DESCRIPTION", ratio=1)
+
+        for index, (option, detail) in enumerate(
+            zip(self.OPTIONS, self.OPTION_DETAILS, strict=True),
+            start=1,
+        ):
+            number = Text(f"{index:02}", style="bold bright_cyan")
+            title = Text(option, style="bold white")
+            description = Text(detail, style="dim")
+            menu.add_row(number, title, description)
+
+        self.console.print(
+            Panel(
+                menu,
+                title="[bold bright_blue] MAIN MENU [/]",
+                subtitle="[dim]Choose an action[/]",
+                border_style="bright_blue",
+                box=box.ROUNDED,
+                padding=(0, 1),
+                expand=True,
+            )
+        )
+        self.console.print(
+            Align.center(
+                Text("Enter 1, 2, or 3 to continue  •  Ctrl+C to quit", style="dim")
+            )
+        )
         self.console.print()
 
+    def show_notice(self, message: str, kind: str = "info") -> None:
+        """Display a consistent, styled notice for the interactive workflow."""
+        styles = {
+            "info": ("INFO", "bright_blue"),
+            "success": ("SUCCESS", "bright_green"),
+            "warning": ("WARNING", "yellow"),
+            "error": ("ERROR", "bright_red"),
+        }
+        label, style = styles.get(kind, styles["info"])
+        content = Text()
+        content.append(f"{label}  ", style=f"bold {style}")
+        content.append(message)
+        self.console.print(
+            Panel(
+                content,
+                border_style=style,
+                box=box.ROUNDED,
+                padding=(0, 1),
+                expand=True,
+            )
+        )
+
+    def pause(self, message: str = "Press Enter to return to the menu...") -> None:
+        """Pause without falling back to unstyled input prompts."""
+        self.console.print(f"[dim]{message}[/]")
+        input()
+
     def get_options(self) -> tuple[str, ...]:
+        """Return the available interactive actions."""
         return self.OPTIONS
 
     def get_choice(self) -> str:
+        """Read the user's menu selection."""
         try:
-            self.console.print("[bold bright_cyan]atom>[/]", end=" ")
+            self.console.print("[bold bright_cyan]ATOM[/] [dim]›[/]", end=" ")
             return input().strip()
         except KeyboardInterrupt:
-            self.console.print("\n[bold bright_red]Exiting ATOM...[/]")
+            self.show_notice("ATOM interrupted. Closing the console.", kind="warning")
             sys.exit(130)
