@@ -3,7 +3,13 @@
 from typing import ClassVar
 
 from rich.console import Console
-from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+)
 from rich.table import Table
 
 from atom_core.auditor_factory import AuditorFactory
@@ -69,15 +75,24 @@ class AuditRunner:
         report_jobs = []
         if target_fmt in {"all", "text", "txt"}:
             report_jobs.append(
-                ("text", lambda: TextReporter.save(summary, findings, output_dir=output_dir))
+                (
+                    "text",
+                    lambda: TextReporter.save(summary, findings, output_dir=output_dir),
+                )
             )
         if target_fmt in {"all", "json"}:
             report_jobs.append(
-                ("json", lambda: JsonReporter.save(summary, findings, output_dir=output_dir))
+                (
+                    "json",
+                    lambda: JsonReporter.save(summary, findings, output_dir=output_dir),
+                )
             )
         if target_fmt in {"all", "html"}:
             report_jobs.append(
-                ("html", lambda: HTMLReporter.save(summary, findings, output_dir=output_dir))
+                (
+                    "html",
+                    lambda: HTMLReporter.save(summary, findings, output_dir=output_dir),
+                )
             )
 
         reports: dict[str, str] = {}
