@@ -109,10 +109,17 @@ class ConsoleReporter:
         )
         severity.add_column("Severity")
         severity.add_column("Count", justify="right")
+        severity.add_column("Distribution", min_width=16)
+        max_severity_count = max(severity_summary.values(), default=0)
         for level in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
             style = ConsoleReporter.SEVERITY_STYLES[level]
+            count = severity_summary.get(level, 0)
+            bar_length = round(count / max_severity_count * 16) if max_severity_count else 0
+            bar = "█" * bar_length
             severity.add_row(
-                f"[{style}]{level}[/]", str(severity_summary.get(level, 0))
+                f"[{style}]{level}[/]",
+                str(count),
+                f"[{style}]{bar}[/]",
             )
         console.print(severity)
 
