@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 
 class ConsoleReporter:
@@ -61,7 +62,7 @@ class ConsoleReporter:
                 else "bright_red" if score < 50
                 else "bright_blue"
             )
-            filled = max(1, min(20, score // 5))
+            filled = max(0, min(20, score // 5))
             score_table = Table.grid(expand=True, padding=(0, 1))
             score_table.add_column(ratio=1)
             score_table.add_column(justify="right")
@@ -115,20 +116,8 @@ class ConsoleReporter:
             )
         console.print(severity)
 
-        details = Table(
-            title="SECURITY FINDINGS",
-            header_style="bold bright_cyan",
-            border_style="bright_blue",
-            show_lines=True,
-            expand=True,
-        )
-        details.add_column("Status", width=8, no_wrap=True)
-        details.add_column("Severity", width=10, no_wrap=True)
-        details.add_column("Finding", min_width=18, ratio=2)
-        details.add_column("Category", min_width=12, ratio=1)
-        details.add_column("Details", min_width=20, ratio=3)
-        details.add_column("Recommendation", min_width=20, ratio=3)
-
+        console.print()
+        console.rule("[bold bright_cyan]SECURITY FINDINGS[/]", style="bright_blue")
         for finding in findings:
             status = finding.status.upper()
             status_style, status_label = ConsoleReporter.STATUS_STYLES.get(
@@ -137,15 +126,29 @@ class ConsoleReporter:
             severity_style = ConsoleReporter.SEVERITY_STYLES.get(
                 finding.severity.upper(), "white"
             )
-            details.add_row(
-                f"[{status_style}]{escape(status_label)}[/]",
-                f"[{severity_style}]{escape(finding.severity)}[/]",
-                f"[bold]{escape(finding.title)}[/]\n[dim]{escape(finding.finding_id)}[/]",
-                escape(finding.category or "General"),
-                escape(finding.details or "—"),
-                escape(finding.recommendation or "—"),
+
+            body = Text()
+            body.append(f"{status_label}  ", style=status_style)
+            body.append(str(finding.severity).upper(), style=severity_style)
+            body.append("  |  ")
+            body.append(str(finding.finding_id or "N/A"), style="dim")
+            body.append("\n")
+            body.append(str(finding.title), style="bold")
+            body.append("\n\nDetails: ", style="bold bright_cyan")
+            body.append(str(finding.details or "—"))
+            body.append("\nRecommendation: ", style="bold bright_cyan")
+            body.append(str(finding.recommendation or "—"))
+            body.append("\nCategory: ", style="bold bright_cyan")
+            body.append(str(finding.category or "General"))
+
+            console.print(
+                Panel(
+                    body,
+                    border_style=status_style,
+                    padding=(0, 1),
+                )
             )
-        console.print(details)
+
         console.print(
             Panel(
                 f"[bold bright_cyan]Audit finished[/]  "
