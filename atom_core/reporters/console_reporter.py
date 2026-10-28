@@ -114,7 +114,9 @@ class ConsoleReporter:
         for level in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
             style = ConsoleReporter.SEVERITY_STYLES[level]
             count = severity_summary.get(level, 0)
-            bar_length = round(count / max_severity_count * 16) if max_severity_count else 0
+            bar_length = (
+                round(count / max_severity_count * 16) if max_severity_count else 0
+            )
             bar = "█" * bar_length
             severity.add_row(
                 f"[{style}]{level}[/]",
