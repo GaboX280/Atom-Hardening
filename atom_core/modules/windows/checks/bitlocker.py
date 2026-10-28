@@ -5,7 +5,8 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
     """Evaluate BitLocker encryption and protection state for C:."""
     auditor.log("Evaluando BitLocker...")
 
-    _command_result_1 = auditor._run_command("manage-bde -status C:", timeout=5)
+    # manage-bde may take longer on some systems; avoid premature timeout errors.
+    _command_result_1 = auditor._run_command("manage-bde -status C:", timeout=15)
     if auditor._record_command_error(_command_result_1, "Bitlocker Check"):
         return
     resultado = _command_result_1.stdout
@@ -25,16 +26,31 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
         )
         return
 
-    fully_encrypted = (
-        "FULLY ENCRYPTED" in normalized or "COMPLETAMENTE CIFRADO" in normalized
+    # Windows localizes manage-bde output. Accept common English and Spanish
+    # wording, including the actual Spanish phrase "Descifrado completo".
+    fully_encrypted = any(
+        phrase in normalized
+        for phrase in (
+            "FULLY ENCRYPTED",
+            "COMPLETAMENTE CIFRADO",
+            "CIFRADO COMPLETO",
+        )
     )
-    protection_enabled = (
-        "PROTECTION ON" in normalized
-        or "PROTECCIÓN ACTIVADA" in normalized
-        or "PROTECCION ACTIVADA" in normalized
+    protection_enabled = any(
+        phrase in normalized
+        for phrase in (
+            "PROTECTION ON",
+            "PROTECCIÓN ACTIVADA",
+            "PROTECCION ACTIVADA",
+        )
     )
-    fully_decrypted = (
-        "FULLY DECRYPTED" in normalized or "COMPLETAMENTE DESCIFRADO" in normalized
+    fully_decrypted = any(
+        phrase in normalized
+        for phrase in (
+            "FULLY DECRYPTED",
+            "COMPLETAMENTE DESCIFRADO",
+            "DESCIFRADO COMPLETO",
+        )
     )
 
     if fully_encrypted and protection_enabled:
@@ -73,7 +89,7 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
             severity="HIGH",
             category="Data Protection",
             details="La unidad C: no está cifrada con BitLocker.",
-            recommendation="Activar BitLocker en la unidad del sistema para proteger los datos almacenados.",
+            recommendation="Antes de habilitar BitLocker, confirmar compatibilidad y guardar de forma segura una copia de la clave de recuperación; después, cifrar la unidad del sistema.",
             reference="Microsoft Security Baseline / CIS Windows Benchmark",
             impact="Los datos quedan más expuestos ante pérdida, robo o acceso físico no autorizado.",
             compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
