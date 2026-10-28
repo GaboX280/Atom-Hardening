@@ -40,7 +40,7 @@ class HTMLReporter:
     @staticmethod
     def _generate_filename(folder):
 
-        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
+        timestamp = datetime.datetime.now(datetime.UTC).strftime(
             "%Y%m%d_%H%M%S"
         )
 
@@ -233,7 +233,7 @@ ATOM SECURITY REPORT
 
 <p>
 Generated:
-{datetime.datetime.now(datetime.timezone.utc)}
+{datetime.datetime.now(datetime.UTC)}
 </p>
 
 

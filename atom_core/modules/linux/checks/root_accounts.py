@@ -5,7 +5,10 @@ def audit_root_accounts(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando cuentas con UID 0...")
 
-    usuarios = auditor._run_command("awk -F: '($3 == 0) {print $1}' /etc/passwd")
+    _command_result_1 = auditor._run_command("awk -F: '($3 == 0) {print $1}' /etc/passwd")
+    if auditor._record_command_error(_command_result_1, "Root Account Enumeration"):
+        return
+    usuarios = _command_result_1.stdout
 
     if usuarios.startswith("ERROR"):
         auditor.add_finding(

@@ -1,158 +1,132 @@
+import re
+
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_firewall(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-
+def audit_firewall(auditor: BaseAuditor) -> None:
+    """Evaluate available Linux firewall backends without stopping at an inactive one."""
     auditor.log(f"Evaluando firewall Linux ({auditor.distro})...")
 
-    # =====================================================
+    inactive_backends: list[str] = []
+    detected_backend = False
+
     # UFW
-    # =====================================================
-
     if auditor.command_exists("ufw"):
-        resultado = auditor._run_command("ufw status").lower()
-
-        if "status: active" in resultado:
-            auditor.add_finding(
-                title="Linux Firewall UFW",
-                status="PASS",
-                severity="INFO",
-                category="Network Security",
-                details=("UFW está instalado y activo."),
-                recommendation=("Mantener reglas restrictivas y actualizadas."),
-                reference=("UFW Documentation"),
-                impact=("El tráfico no autorizado es filtrado."),
-                compliance=["CIS Linux Benchmark"],
-            )
-
-        else:
-            auditor.add_finding(
-                title="Linux Firewall UFW",
-                status="WARNING",
-                severity="MEDIUM",
-                category="Network Security",
-                details=("UFW está instalado pero deshabilitado."),
-                recommendation=("Activar UFW si el equipo requiere filtrado de red."),
-                reference=("UFW Documentation"),
-                impact=("Los servicios pueden quedar expuestos."),
-                compliance=["CIS Linux Benchmark"],
-            )
-
-        return
-
-    # =====================================================
-    # nftables
-    # =====================================================
-
-    if auditor.command_exists("nft"):
-        resultado = auditor._run_command("nft list ruleset")
-
-        if resultado.startswith("ERROR"):
-            auditor.add_finding(
-                title="Linux Firewall nftables",
-                status="ERROR",
-                severity="MEDIUM",
-                category="Network Security",
-                details=resultado,
-                recommendation=("Ejecutar auditoría con permisos adecuados."),
-            )
-
+        detected_backend = True
+        result = auditor._run_command("ufw status")
+        if auditor._record_command_error(result, "Linux Firewall Check"):
             return
 
-        reglas = resultado.strip()
+        if "status: active" in result.stdout.lower():
+            auditor.add_finding(
+                title="Linux Firewall UFW",
+                status="PASS",
+                severity="INFO",
+                category="Network Security",
+                details="UFW está instalado y activo.",
+                recommendation="Mantener reglas restrictivas y actualizadas.",
+                reference="UFW Documentation",
+                impact="El tráfico no autorizado puede ser filtrado por UFW.",
+                compliance=["CIS Linux Benchmark"],
+            )
+            return
 
-        if reglas and ("table inet" in reglas or "chain" in reglas.lower()):
+        inactive_backends.append("UFW está instalado pero deshabilitado.")
+
+    # nftables
+    if auditor.command_exists("nft"):
+        detected_backend = True
+        result = auditor._run_command("nft list ruleset")
+        if auditor._record_command_error(result, "Linux Firewall Check"):
+            return
+
+        ruleset = result.stdout.strip()
+        has_restrictive_rule = any(
+            re.search(r"\b(drop|reject)\b", line, re.IGNORECASE)
+            for line in ruleset.splitlines()
+        )
+        if has_restrictive_rule:
             auditor.add_finding(
                 title="Linux Firewall nftables",
                 status="PASS",
                 severity="INFO",
                 category="Network Security",
-                details=("nftables posee reglas configuradas."),
-                recommendation=("Mantener revisión periódica de reglas."),
-                reference=("nftables Documentation"),
-                impact=("El kernel aplica filtrado de tráfico."),
+                details="Se detectaron políticas o reglas drop/reject en nftables.",
+                recommendation="Revisar periódicamente que las reglas filtren el tráfico según la política esperada.",
+                reference="nftables Documentation",
+                impact="Las políticas y reglas de rechazo reducen el tráfico no autorizado.",
                 compliance=["CIS Linux Benchmark"],
             )
+            return
 
-        else:
-            auditor.add_finding(
-                title="Linux Firewall nftables",
-                status="WARNING",
-                severity="MEDIUM",
-                category="Network Security",
-                details=("nftables está instalado pero no posee reglas."),
-                recommendation=(
-                    "Configurar reglas de filtrado según el uso del sistema."
-                ),
-                reference=("nftables Documentation"),
-                impact=("El sistema no posee una política efectiva de filtrado."),
-                compliance=["CIS Linux Benchmark"],
-            )
+        inactive_backends.append(
+            "nftables no presenta reglas drop/reject explícitas; su filtrado efectivo no está confirmado."
+        )
 
-        return
-
-    # =====================================================
-    # Firewalld
-    # =====================================================
-
+    # firewalld
     if auditor.command_exists("firewall-cmd"):
-        resultado = auditor._run_command("firewall-cmd --state").lower()
+        detected_backend = True
+        result = auditor._run_command("firewall-cmd --state")
+        if auditor._record_command_error(
+            result, "Linux Firewall Check", allowed_returncodes=(0, 252)
+        ):
+            return
 
-        if "running" in resultado:
+        state = result.stdout.lower()
+        if "running" in state and "not running" not in state:
             auditor.add_finding(
                 title="Linux Firewall Firewalld",
                 status="PASS",
                 severity="INFO",
                 category="Network Security",
-                details=("Firewalld está activo."),
-                recommendation=("Mantener zonas y reglas actualizadas."),
+                details="Firewalld está activo.",
+                recommendation="Mantener zonas y reglas actualizadas.",
                 compliance=["CIS Linux Benchmark"],
             )
+            return
 
-        else:
-            auditor.add_finding(
-                title="Linux Firewall Firewalld",
-                status="WARNING",
-                severity="MEDIUM",
-                category="Network Security",
-                details=("Firewalld está instalado pero detenido."),
-                recommendation=("Activar firewalld si es requerido."),
-            )
+        inactive_backends.append("Firewalld está instalado pero detenido.")
 
-        return
-
-    # =====================================================
-    # IPTABLES HEREDADO
-    # =====================================================
-
+    # iptables heredado. La presencia de cadenas no demuestra que sus políticas
+    # filtren tráfico; por eso se informa como hallazgo que requiere revisión.
     if auditor.command_exists("iptables"):
-        resultado = auditor._run_command("iptables -L -n")
+        detected_backend = True
+        result = auditor._run_command("iptables -L -n")
+        if auditor._record_command_error(result, "Linux Firewall Check"):
+            return
 
-        if resultado and "Chain" in resultado:
-            auditor.add_finding(
-                title="Linux Firewall iptables",
-                status="WARNING",
-                severity="MEDIUM",
-                category="Network Security",
-                details=("iptables está disponible y posee cadenas."),
-                recommendation=("Migrar reglas a nftables cuando sea posible."),
-                compliance=["CIS Linux Benchmark"],
+        if result.stdout.strip() and "Chain" in result.stdout:
+            inactive_backends.append(
+                "iptables está disponible; sus políticas y reglas requieren revisión."
             )
+        else:
+            inactive_backends.append("iptables está disponible, pero no se detectaron reglas.")
 
+    if inactive_backends:
+        auditor.add_finding(
+            title="Linux Firewall",
+            status="WARNING",
+            severity="MEDIUM",
+            category="Network Security",
+            details="No se confirmó un firewall activo entre los backends revisados: "
+            + " ".join(inactive_backends),
+            recommendation="Verificar qué backend administra el filtrado del sistema y confirmar sus reglas efectivas.",
+            reference="CIS Linux Benchmark",
+            impact="No se pudo confirmar una política efectiva de filtrado del tráfico.",
+            confidence="MEDIUM",
+            compliance=["CIS Linux Benchmark"],
+        )
         return
 
-    # =====================================================
-    # SIN FIREWALL
-    # =====================================================
-
-    auditor.add_finding(
-        title="Linux Firewall",
-        status="WARNING",
-        severity="MEDIUM",
-        category="Network Security",
-        details=("No se detectó una solución firewall configurada."),
-        recommendation=("Configurar nftables, UFW o firewalld según el escenario."),
-        reference=("CIS Linux Benchmark"),
-        impact=("La máquina puede aceptar tráfico no filtrado."),
-        compliance=["CIS Linux Benchmark"],
-    )
+    if not detected_backend:
+        auditor.add_finding(
+            title="Linux Firewall",
+            status="WARNING",
+            severity="MEDIUM",
+            category="Network Security",
+            details="No se detectó una solución firewall disponible mediante UFW, nftables, firewalld o iptables.",
+            recommendation="Configurar una solución de firewall adecuada para el escenario.",
+            reference="CIS Linux Benchmark",
+            impact="La máquina podría aceptar tráfico no filtrado.",
+            compliance=["CIS Linux Benchmark"],
+        )

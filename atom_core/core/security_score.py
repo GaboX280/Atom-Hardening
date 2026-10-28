@@ -1,8 +1,11 @@
 from typing import ClassVar
 
+from atom_core.models.finding import Finding
+
 
 class SecurityScore:
-    # Penalty values per severity (higher penalties for critical findings)
+    """Calcula una puntuación acotada a partir de hallazgos normalizados."""
+
     PENALTIES: ClassVar[dict[str, int]] = {
         "CRITICAL": 60,
         "HIGH": 20,
@@ -11,44 +14,40 @@ class SecurityScore:
         "INFO": 0,
     }
 
-    # ANSI color codes for terminal output
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    ORANGE = "\033[33m"
-    RED = "\033[91m"
-    RESET = "\033[0m"
+    @classmethod
+    def calculate(cls, findings: list[Finding]) -> int:
+        """Calcula una puntuación entre 0 y 100.
 
-    @staticmethod
-    def calculate(findings):
-        """Calculate a security score based on findings.
-
-        Starts at 100 and subtracts penalties for each finding that is not a PASS.
+        Los hallazgos PASS y ERROR no reducen la puntuación. ERROR indica que
+        el control no pudo evaluar el sistema y no confirma por sí mismo una
+        debilidad de seguridad.
         """
         score = 100
+
         for finding in findings:
-            if finding.status != "PASS":
-                penalty = SecurityScore.PENALTIES.get(finding.severity.upper(), 5)
-                score -= penalty
-        return max(0, score)
+            if finding.status in {"PASS", "ERROR"}:
+                continue
+
+            severity = finding.severity.upper()
+            penalty = (
+                finding.severity_score
+                if finding.severity_score > 0
+                else cls.PENALTIES.get(severity, 5)
+            )
+            score -= penalty
+
+        return max(0, min(100, score))
 
     @staticmethod
-    def rating(score):
-        """Return a plain Spanish rating string based on the score.
+    def rating(score: int) -> str:
+        """Devuelve la clasificación en español sin códigos ANSI."""
+        if not 0 <= score <= 100:
+            raise ValueError("score must be between 0 and 100")
 
-        Ranges:
-        - 90-100: EXCELENTE
-        - 75-89 : BUENO
-        - 50-74 : MODERADO
-        - 0-49  : CRITICO
-
-        La función devuelve texto sin códigos ANSI para que el valor sea
-        reutilizable en reportes JSON, HTML y otras integraciones.
-        """
         if score >= 90:
             return "EXCELENTE (90-100)"
-        elif score >= 75:
+        if score >= 75:
             return "BUENO (75-89)"
-        elif score >= 50:
+        if score >= 50:
             return "MODERADO (50-74)"
-        else:
-            return "CRITICO (0-49)"
+        return "CRITICO (0-49)"

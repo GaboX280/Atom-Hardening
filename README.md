@@ -1,310 +1,133 @@
 <div align="center">
-  <h1>⚛ Atom Hardening Tool</h1>
-  <p><b>Automated Security Auditing and Hardening Framework for Windows and Linux</b></p>
 
-  [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-  [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-  [![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
-  [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey.svg)]()
-  [![CI](https://github.com/GaboX280/Atom-Hardening/actions/workflows/ci.yml/badge.svg)](https://github.com/GaboX280/Atom-Hardening/actions)
-  [![Version](https://img.shields.io/badge/version-1.2.0-informational)]()
+# ⚛ Atom-Hardening
+
+**Automated security auditing and configuration assessment for Windows and Linux.**
+
+Atom runs local security checks, normalizes findings, calculates a bounded Security Score, and produces reports that help analysts review endpoint posture.
+
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)]()
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/GaboX280/Atom-Hardening/actions/workflows/ci.yml/badge.svg)](https://github.com/GaboX280/Atom-Hardening/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-2.0.0--candidate-blue)]()
+
 </div>
 
 ---
 
-## 1. Overview
+## Overview
 
-**Atom** is a modular security auditing and hardening framework designed to identify configuration weaknesses and system-level vulnerabilities on **Windows** and **Linux**.
+Atom-Hardening is a modular defensive-security project. It evaluates selected local configuration controls on Windows and Linux and reports the results as structured findings. It is designed for auditing and visibility; **it does not automatically change system settings or apply hardening actions**.
 
-It performs automated, in-depth configuration checks, generates normalized findings, calculates a structured **Security Score**, and exports telemetry in multiple formats (console, TXT, JSON, and HTML). The framework uses an OS-centered modular design, dynamically running security checks according to the execution environment.
+## What's new in 2.0
 
----
+- **Richer terminal UI:** colored Rich panels show the Security Score, check status counts and severity distribution side by side when the terminal is wide enough. Detailed findings appear beneath the summary.
+- **Structured Windows checks:** PowerShell and registry-backed controls use structured output where implemented, reducing dependence on localized command-line text.
+- **More predictable audit results:** findings use a common model, the Security Score is bounded to 0–100, and execution errors remain visible without being treated as confirmed security weaknesses.
+- **Multi-format reporting:** TXT, JSON and HTML reports support human review and downstream automation.
+- **Expanded tests:** core logic, CLI behavior, Windows checks and Linux checks have automated coverage.
 
-## 2. Framework Architecture
+> Version 2.0 is a release candidate until the full CI checks pass and the integrated behavior is verified.
 
-### Directory Structure
+## Security checks
 
-```text
-ATOM/
-├── main.py                    # Main entry point (CLI + interactive menu)
-├── AtomHardening.spec         # PyInstaller build configuration
-├── config.json                # Project configuration
-├── pytest.ini                 # Test configuration
-├── requirements.txt
-├── atom_core/
-│   ├── auditor_factory.py     # Automatic OS detection
-│   ├── base_auditor.py        # Shared base class for all auditors
-│   ├── core/
-│   │   ├── security_score.py  # Security score calculation
-│   │   └── security_summary.py
-│   ├── interface/
-│   │   └── interface.py       # Menu user interface
-│   ├── models/
-│   │   └── finding.py         # Finding data model
-│   ├── reporters/
-│   │   ├── console_reporter.py
-│   │   ├── text_reporter.py
-│   │   ├── json_reporter.py
-│   │   └── html_reporter.py
-│   ├── runners/
-│   │   └── audit_runner.py    # Audit orchestrator
-│   ├── utils/
-│   │   └── distro.py
-│   └── audits/
-│       ├── windows/           # Windows auditor and checks
-│       └── linux/             # Linux auditor and checks
-├── tests/                     # Unit test suite (23 tests)
-└── dist/
-    └── AtomHardening.exe      # Standalone Windows executable
-```
+The exact results depend on operating system, policy configuration, available commands and permissions.
 
-### Execution Pipeline
+| Area | Examples |
+| --- | --- |
+| Windows identity and access | Built-in Administrator and Guest accounts, UAC, password policy |
+| Windows network security | Firewall profiles, SMBv1, LLMNR, Remote Desktop |
+| Windows protection | BitLocker, Microsoft Defender, Windows Update and selected system policies |
+| Linux configuration | Firewall state, failed logins, password policy, file permissions, root accounts, services and SUID files |
 
-```text
-[ START ] → main.py → AuditRunner → AuditorFactory
-                                         |
-              +--------------------------+
-              |
-              ▼
-     [ OS DETECTED ] → (WindowsAuditor | LinuxAuditor)
-                                |
-                                ▼
-                        Security Checks
-                                |
-                                ▼
-                        Finding Objects
-                                |
-              +-----------------+-----------------+
-              |                                   |
-              ▼                                   ▼
-       SecurityScore                      SecuritySummary
-              |                                   |
-              +-----------------+-----------------+
-                                |
-                                ▼
-               (Console | TXT | JSON | HTML)
-```
+Some checks need elevated privileges or specific Windows PowerShell cmdlets to return complete results. A result of `ERROR` means the check could not reliably evaluate the control; it should not be read as a confirmed vulnerability. Review the details and recommendations before making operational decisions.
 
----
+## Requirements
 
-## 3. Auditing Capabilities
+- Python **3.11 or newer**.
+- Windows PowerShell for Windows-specific checks; compatible Linux utilities for Linux checks.
+- Administrator/root permissions may be required for selected checks.
 
-The framework automatically detects the operating system and loads the corresponding auditing module.
-
-### Supported Security Checks
-
-| Category | Windows | Linux |
-| :--- | :--- | :--- |
-| **System Identity** | Administrator and Guest accounts | Users and accounts |
-| **Access Control** | UAC, PowerShell policy, passwords | Root login, authentication protocols |
-| **Network and Communications** | Firewall, SMBv1, LLMNR | Linux firewall, network services |
-| **Defense Mechanisms** | Windows Defender, BitLocker | System services |
-| **Configuration** | Updates, DNS over HTTPS | Critical system settings |
-| **File Security** | NTFS permissions | Sensitive files and permissions |
-| **SSH** | SSH configuration | SSH service status and configuration |
-
----
-
-## 4. Telemetry and Reports
-
-Atom generates standardized output in four formats. The default output directory is `~/Desktop/Atom Logs`, which can be changed using the `--output-dir` flag.
-
-| Report Type | Main Purpose | Features |
-| :--- | :--- | :--- |
-| **Console** | Real-time operation | Severity colors (PASS, FAIL, WARNING) |
-| **TXT** | Local logging | Structured plain-text files for persistent logs |
-| **JSON** | Automation / SIEM | Normalized schema for ingestion into APIs and backends |
-| **HTML** | Executive dashboards | Graphical interface with findings table and score |
-
-### Finding Schema
-
-```json
-{
-    "title": "Windows Firewall",
-    "status": "PASS",
-    "severity": "INFO",
-    "category": "Network Security",
-    "module": "WindowsAuditor",
-    "recommendation": "Keep the firewall enabled.",
-    "reference": "CIS 1.2",
-    "timestamp": "2026-10-15T10:30:00Z"
-}
-```
-
----
-
-## 5. Security Score
-
-The framework measures a system's security posture using a progressive **Security Score** algorithm. Deductions are applied according to the severity of each finding.
-
-> **SECURITY SCORE: 78/100**  
-> **STATUS: MODERATE**
-
-| Severity Level | Deduction |
-| :--- | :--- |
-| **CRITICAL** | -25 points |
-| **HIGH** | -15 points |
-| **MEDIUM** | -8 points |
-| **LOW** | -3 points |
-| **INFO** | 0 points |
-
----
-
-## 6. Installation and Usage
-
-### Prerequisites
-
-- **Windows:** Elevated privileges (Administrator).
-- **Linux:** Root privileges (use `sudo`).
-- Python 3.10 or later.
-
-### Option A — Standalone Executable (Recommended)
-
-Download `AtomHardening.exe` from `dist/` — **Python does not need to be installed**.
+## Installation
 
 ```powershell
-# Windows: run a full scan
-.\AtomHardening.exe --scan
-
-# Save only a JSON report to a custom directory
-.\AtomHardening.exe --scan --format json --output-dir C:\my-reports
-```
-
-### Option B — From Source
-
-```bash
 git clone https://github.com/GaboX280/Atom-Hardening.git
 cd Atom-Hardening
-pip install pyfiglet
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
+On Linux, create and activate the virtual environment with `python3 -m venv .venv` and `source .venv/bin/activate`, then install `requirements.txt`.
+
+## Usage
+
+Run the interactive menu:
+
 ```bash
-# Interactive mode (menu)
 python main.py
-
-# Run a scan directly, without the menu
-python main.py --scan
 ```
 
----
+In the interactive flow, option **1** runs the security audit; option **2** displays the last results after a completed audit.
 
-## 7. CLI Flag Reference
-
-```text
-usage: main.py [-h] [-s] [-f {all,json,html,text,txt}] [-o OUTPUT_DIR] [-q] [-v]
-               {audit,list,config} ...
-
-ATOM - Automated Security Auditing and Hardening Framework
-
-Main flags:
-  -s, --scan            Run a scan directly without the interactive menu
-  -f, --format          Report format: all | json | html | text | txt (default: all)
-  -o, --output-dir      Custom directory for report output
-  -q, --quiet           Quiet mode (suppresses the banner and decorative messages)
-  -v, --version         Show the ATOM version and exit
-
-Subcommands:
-  audit                 Run an audit (automatic or interactive mode)
-  list                  List available audits
-  config                Show the current configuration (config.json)
-```
-
-### Quick Examples
+Run an audit directly:
 
 ```bash
-# Show the version
+# Show version and supported commands
 python main.py --version
-# → ATOM v1.2.0
-
-# List available audits
+python main.py --help
 python main.py list
 
-# Quiet scan, HTML output only, in a custom directory
-python main.py --scan --format html --output-dir ./reports --quiet
+# Run an audit and generate all supported report formats
+python main.py --scan
 
-# Full interactive mode (default)
-python main.py
+# Generate JSON only in a custom output directory
+python main.py --scan --format json --output-dir ./reports
+
+# Use the audit subcommand without the interactive menu
+python main.py audit --audit 1 --no-gui
 ```
 
----
+Supported output selections are `all`, `json`, `html`, `text` and `txt`. Use `--quiet` to suppress the decorative console output.
 
-## 8. Screenshots and Output
+## Architecture
 
-| Stage | Preview |
-| :--- | :--- |
-| **Main Interface** | ![Menu](docs/screenshots/menu_inicio.png) |
-| **Audit Execution** | ![Audit](docs/screenshots/Ejecucion_windows_audit.png) |
-| **Security Score** | ![Score](docs/screenshots/Security_Score.png) |
-| **Terminal Summary** | ![Results](docs/screenshots/Resultados_windows.png) |
-| **TXT/JSON Report** | ![Report](docs/screenshots/Security_Report.png) |
-| **HTML Report** | ![HTML](docs/screenshots/html.report.png) |
+```text
+main.py
+└── CLI and interactive menu
+    └── atom_core/
+        ├── interface/    # Rich terminal interface
+        ├── runners/      # Audit orchestration and result presentation
+        ├── modules/      # Windows and Linux security checks
+        ├── core/         # Security Score and summary aggregation
+        ├── models/       # Normalized Finding model
+        └── reporters/    # Console, TXT, JSON and HTML output
+```
 
----
+General execution flow:
 
-## 9. Unit Tests
+```text
+CLI → AuditRunner → OS-specific checks → Findings
+    → SecuritySummary + SecurityScore → Reporters
+```
 
-The test suite covers critical framework components. All tests run automatically in CI on each push.
+## Tests and quality checks
+
+Install the development tools and run the same checks used by CI:
 
 ```bash
-# Run the complete test suite (23 tests)
-python -m pytest
-
-# Type checking
-mypy .
-
-# Linting
-ruff check .
+python -m pip install pytest pytest-cov mypy ruff
+python -m mypy .
+python -m ruff check .
+python -m pytest --cov=atom_core --cov-report=term-missing
 ```
 
-| Test File | Coverage |
-| :--- | :--- |
-| `test_cli.py` | CLI flags, `--scan`, `--version`, `--format` |
-| `test_auditor_factory.py` | OS detection, `WindowsAuditor`, `LinuxAuditor` |
-| `test_base_auditor.py` | `add_finding`, `clear_report`, `command_exists` |
-| `test_finding.py` | Finding model, `to_dict`, `__str__` |
-| `test_reporters.py` | JSON, TXT, HTML, and console reporters |
-| `test_security_summary.py` | Aggregation of findings by status and severity |
-| `test_security_score.py` | Score calculation and classification |
+## Responsible use
 
----
+Use Atom only on systems you own or are authorized to assess. Review findings before changing a security policy, and validate any recommendation against the requirements of your environment.
 
-## 10. Building the Executable
+## License
 
-To generate `dist/AtomHardening.exe` from source:
-
-```bash
-pip install pyinstaller
-pyinstaller --clean AtomHardening.spec
-```
-
-The resulting executable is self-contained — it includes all `atom_core` modules, pyfiglet fonts, and `config.json`.
-
----
-
-## 11. Roadmap
-
-**Completed:**
-
-- ✅ OS-centered modular architecture.
-- ✅ Audit subsystems for Windows and Linux.
-- ✅ Automatic OS detection.
-- ✅ Multi-format reports (JSON, HTML, TXT, console).
-- ✅ Centralized data model (`Finding`).
-- ✅ Unit test suite (23 tests, CI/CD with GitHub Actions).
-- ✅ Full CLI flags (`--scan`, `--format`, `--output-dir`, `--quiet`, `--version`).
-- ✅ Standalone `AtomHardening.exe` built with PyInstaller.
-- ✅ Code comments translated into Spanish.
-
-**Development Roadmap:**
-
-- ⬜ CIS benchmark mapping.
-- ⬜ CVE/CIS cross-references for each finding.
-- ⬜ Plugin subsystem for custom checks.
-- ⬜ Expanded web dashboard.
-- ⬜ Filter audits by category.
-
----
-
-## 12. Legal Notice
-
-**Atom** is an open-source framework developed exclusively for educational research and authorized security posture assessments. Automated auditing and hardening scripts must be run only on infrastructure you own or on environments for which you have explicit authorization. The repository maintainer assumes no responsibility for unauthorized use.
+MIT. See [LICENSE](LICENSE).

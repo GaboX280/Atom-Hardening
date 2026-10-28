@@ -1,192 +1,192 @@
+"""Rich-powered terminal report for Atom security audits."""
+
+import re
 from collections import Counter
+from typing import ClassVar
+
+from rich.columns import Columns
+from rich.console import Console, Group, RenderableType
+from rich.markup import escape
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 
 class ConsoleReporter:
-    GREEN = "\033[92m"
-    RED = "\033[91m"
-    YELLOW = "\033[93m"
-    CYAN = "\033[96m"
-    BLUE = "\033[94m"
-    WHITE = "\033[97m"
-    MAGENTA = "\033[95m"
-    RESET = "\033[0m"
+    """Render audit summaries and findings in a readable terminal layout."""
+
+    STATUS_STYLES: ClassVar[dict[str, tuple[str, str]]] = {
+        "PASS": ("bright_green", "PASS"),
+        "WARNING": ("yellow", "WARN"),
+        "FAIL": ("bright_red", "FAIL"),
+        "ERROR": ("bright_red", "ERROR"),
+    }
+    SEVERITY_STYLES: ClassVar[dict[str, str]] = {
+        "CRITICAL": "bold bright_red",
+        "HIGH": "bright_red",
+        "MEDIUM": "yellow",
+        "LOW": "bright_blue",
+        "INFO": "dim",
+    }
 
     @staticmethod
-    def display(findings, score=None, rating=None):
+    def display(findings, score=None, rating=None) -> None:
+        """Display colored overview panels side by side and detailed findings below."""
+        console = Console()
         if not findings:
-            print(
-                f"{ConsoleReporter.YELLOW}"
-                "\n[!] No se encontraron resultados."
-                f"{ConsoleReporter.RESET}"
+            console.print(
+                Panel(
+                    "[yellow]No se encontraron resultados.[/]",
+                    title="[bold bright_cyan]ATOM SECURITY REPORT[/]",
+                    border_style="yellow",
+                )
             )
             return
 
-        status_summary = Counter(
-            finding.status.upper() for finding in findings
-        )
-        severity_summary = Counter(
-            finding.severity.upper() for finding in findings
-        )
+        status_summary = Counter(finding.status.upper() for finding in findings)
+        severity_summary = Counter(finding.severity.upper() for finding in findings)
 
-        print("\n")
-        ConsoleReporter._line()
-
-        print(
-            f"{ConsoleReporter.CYAN}"
-            "                 ATOM SECURITY REPORT"
-            f"{ConsoleReporter.RESET}"
-        )
-        print(
-            f"{ConsoleReporter.BLUE}"
-            "                 Version 1.0"
-            f"{ConsoleReporter.RESET}"
+        console.print(
+            Panel(
+                "[bold bright_cyan]ATOM SECURITY REPORT[/]\n"
+                "[dim]Automated Security Hardening Framework[/]",
+                border_style="bright_blue",
+                padding=(1, 2),
+            )
         )
 
-        ConsoleReporter._line()
+        summary = Table(
+            title="AUDIT SUMMARY",
+            header_style="bold bright_cyan",
+            border_style="blue",
+            show_lines=False,
+            expand=True,
+        )
+        summary.add_column("Metric", style="white", ratio=1)
+        summary.add_column("Count", justify="right", style="bold")
+        summary.add_row("Total checks", str(len(findings)))
+        for status, style in (
+            ("PASS", "bright_green"),
+            ("WARNING", "yellow"),
+            ("FAIL", "bright_red"),
+            ("ERROR", "bright_red"),
+        ):
+            summary.add_row(
+                f"[{style}]{status}[/]",
+                f"[{style}]{status_summary.get(status, 0)}[/]",
+            )
 
-        # ===============================
-        # PUNTUACIÓN DE SEGURIDAD
-        # ===============================
-
+        left_items: list[RenderableType] = []
         if score is not None:
-            if score < 50:
-                score_color = ConsoleReporter.RED
-            elif score < 90:
-                score_color = ConsoleReporter.YELLOW
-            else:
-                score_color = ConsoleReporter.GREEN
-
-            print()
-            print(" SECURITY SCORE")
-            print("-" * 70)
-            print(
-                f"{score_color}        {score}/100"
-                f"{ConsoleReporter.RESET}"
+            score_style = (
+                "bright_green" if score >= 90
+                else "yellow" if score >= 75
+                else "bright_red" if score < 50
+                else "bright_blue"
             )
-
+            filled = max(0, min(20, score // 5))
+            score_table = Table.grid(expand=True, padding=(0, 1))
+            score_table.add_column(ratio=1)
+            score_table.add_column(justify="right")
+            score_table.add_row(
+                f"[bold]Security score[/]  [{score_style}]{score}/100[/]",
+                f"[{score_style}]{'━' * filled}{'─' * (20 - filled)}[/]",
+            )
             if rating:
-                if score < 50:
-                    rating_color = ConsoleReporter.RED
-                elif score < 90:
-                    rating_color = ConsoleReporter.YELLOW
-                else:
-                    rating_color = ConsoleReporter.GREEN
-
-                print(
-                    f"        Rating: {rating_color}"
-                    f"{rating}{ConsoleReporter.RESET}"
+                clean_rating = re.sub(r"\x1b\[[0-9;]*m", "", str(rating))
+                score_table.add_row("[dim]Rating[/]", escape(clean_rating))
+            left_items.append(
+                Panel(
+                    score_table,
+                    title="[bold bright_blue]POSTURE[/]",
+                    border_style=score_style,
+                    padding=(0, 1),
                 )
-
-            print("-" * 70)
-
-        # ===============================
-        # RESUMEN
-        # ===============================
-
-        print()
-        print(
-            f"{ConsoleReporter.WHITE}"
-            " SECURITY SUMMARY"
-            f"{ConsoleReporter.RESET}"
-        )
-        print("-" * 70)
-        print(f" Total Checks : {len(findings)}")
-
-        ConsoleReporter._print_count(
-            "PASS", status_summary.get("PASS", 0), ConsoleReporter.GREEN
-        )
-        ConsoleReporter._print_count(
-            "WARNING", status_summary.get("WARNING", 0), ConsoleReporter.YELLOW
-        )
-        ConsoleReporter._print_count(
-            "FAIL", status_summary.get("FAIL", 0), ConsoleReporter.RED
-        )
-        ConsoleReporter._print_count(
-            "ERROR", status_summary.get("ERROR", 0), ConsoleReporter.RED
-        )
-
-        print()
-        print(
-            f"{ConsoleReporter.MAGENTA}"
-            " SEVERITY SUMMARY"
-            f"{ConsoleReporter.RESET}"
-        )
-        print("-" * 70)
-
-        for severity in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]:
-            print(
-                f" {severity:<10}: "
-                f"{severity_summary.get(severity, 0)}"
             )
-
-        print("-" * 70)
-
-        # ===============================
-        # HALLAZGOS
-        # ===============================
-
-        print()
-        print(
-            f"{ConsoleReporter.WHITE}"
-            " SECURITY FINDINGS"
-            f"{ConsoleReporter.RESET}"
+        left_items.append(summary)
+        left_panel = Panel(
+            Group(*left_items),
+            title="[bold bright_cyan]OVERVIEW[/]",
+            border_style="blue",
+            padding=(0, 1),
         )
-        print("-" * 70)
 
+        severity = Table(
+            title="SEVERITY DISTRIBUTION",
+            header_style="bold bright_cyan",
+            border_style="blue",
+            expand=True,
+        )
+        severity.add_column("Severity", ratio=1)
+        severity.add_column("Count", justify="right")
+        severity.add_column("Distribution", min_width=8, ratio=1)
+        max_severity_count = max(severity_summary.values(), default=0)
+        for level in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
+            style = ConsoleReporter.SEVERITY_STYLES[level]
+            count = severity_summary.get(level, 0)
+            bar_length = (
+                round(count / max_severity_count * 12) if max_severity_count else 0
+            )
+            bar = "█" * bar_length
+            severity.add_row(
+                f"[{style}]{level}[/]",
+                str(count),
+                f"[{style}]{bar}[/]",
+            )
+        right_panel = Panel(
+            severity,
+            title="[bold bright_cyan]RISK BREAKDOWN[/]",
+            border_style="bright_blue",
+            padding=(0, 1),
+        )
+
+        # Rich Columns wraps panels when the terminal is too narrow.
+        console.print(
+            Columns(
+                [left_panel, right_panel],
+                equal=True,
+                expand=True,
+                padding=(0, 1),
+            )
+        )
+
+        console.print()
+        console.rule("[bold bright_cyan]SECURITY FINDINGS[/]", style="bright_blue")
         for finding in findings:
             status = finding.status.upper()
+            status_style, status_label = ConsoleReporter.STATUS_STYLES.get(
+                status, ("white", status or "UNKNOWN")
+            )
+            severity_style = ConsoleReporter.SEVERITY_STYLES.get(
+                finding.severity.upper(), "white"
+            )
 
-            if status == "PASS":
-                color = ConsoleReporter.GREEN
-                icon = "[+]"
-            elif status == "WARNING":
-                color = ConsoleReporter.YELLOW
-                icon = "[!]"
-            elif status in ["FAIL", "ERROR"]:
-                color = ConsoleReporter.RED
-                icon = "[X]"
-            else:
-                color = ConsoleReporter.WHITE
-                icon = "[?]"
+            body = Text()
+            body.append(f"{status_label}  ", style=status_style)
+            body.append(str(finding.severity).upper(), style=severity_style)
+            body.append("  |  ")
+            body.append(str(finding.finding_id or "N/A"), style="dim")
+            body.append("\n")
+            body.append(str(finding.title), style="bold")
+            body.append("\n\nDetails: ", style="bold bright_cyan")
+            body.append(str(finding.details or "—"))
+            body.append("\nRecommendation: ", style="bold bright_cyan")
+            body.append(str(finding.recommendation or "—"))
+            body.append("\nCategory: ", style="bold bright_cyan")
+            body.append(str(finding.category or "General"))
 
-            print()
-            print(f"{color}{icon} {finding.title}{ConsoleReporter.RESET}")
-            print(f"    ID          : {finding.finding_id}")
-            print(f"    Status      : {finding.status}")
-            print(f"    Severity    : {finding.severity}")
-            print(f"    Category    : {finding.category}")
-            print(f"    Module      : {finding.module}")
-            print(f"    Details     : {finding.details}")
-            print(f"    Fix         : {finding.recommendation}")
+            console.print(
+                Panel(
+                    body,
+                    border_style=status_style,
+                    padding=(0, 1),
+                )
+            )
 
-            if finding.reference:
-                print(f"    Reference   : {finding.reference}")
-
-            print(f"    Timestamp   : {finding.timestamp}")
-            print("-" * 70)
-
-        ConsoleReporter._line()
-
-        print(
-            f"{ConsoleReporter.GREEN}"
-            "        Audit Completed Successfully"
-            f"{ConsoleReporter.RESET}"
+        console.print(
+            Panel(
+                f"[bold bright_cyan]Audit finished[/]  "
+                f"[dim]{len(findings)} controls evaluated[/]",
+                border_style="bright_blue",
+            )
         )
-
-        ConsoleReporter._line()
-
-    # ==================================
-    # FUNCIONES AUXILIARES
-    # ==================================
-
-    @staticmethod
-    def _line():
-        print(
-            f"{ConsoleReporter.CYAN}"
-            + "=" * 70
-            + f"{ConsoleReporter.RESET}"
-        )
-
-    @staticmethod
-    def _print_count(name, value, color):
-        print(f"{color} {name:<12}: {value}{ConsoleReporter.RESET}")

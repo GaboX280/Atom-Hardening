@@ -3,7 +3,13 @@ from atom_core.base_auditor import BaseAuditor
 
 def detect_distro(auditor: BaseAuditor) -> str: # [TIPADO AÑADIDO]
 
-    resultado = auditor._run_command("cat /etc/os-release").lower()
+    resultado_comando = auditor._run_command("cat /etc/os-release")
+
+    if resultado_comando.error is not None or resultado_comando.returncode != 0:
+        auditor.log("No fue posible detectar la distribución Linux.", level="ERROR")
+        return "unknown"
+
+    resultado = resultado_comando.stdout.lower()
 
     if "ubuntu" in resultado:
         return "ubuntu"

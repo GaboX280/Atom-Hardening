@@ -44,7 +44,7 @@ class TextReporter:
     @staticmethod
     def _generate_filename(folder):
 
-        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
+        timestamp = datetime.datetime.now(datetime.UTC).strftime(
             "%Y%m%d_%H%M%S"
         )
 
@@ -63,7 +63,7 @@ class TextReporter:
             f"MODULE: {summary.get('module', 'UNKNOWN')}\n"
             f"SCORE: {summary.get('score', 0)}/100\n"
             f"RATING: {summary.get('rating', 'UNKNOWN')}\n"
-            f"DATE: {datetime.datetime.now(datetime.timezone.utc)}\n\n"
+            f"DATE: {datetime.datetime.now(datetime.UTC)}\n\n"
         )
 
     @staticmethod

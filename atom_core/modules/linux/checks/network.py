@@ -5,7 +5,10 @@ def audit_network(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     auditor.log("Evaluando servicios de red escuchando...")
 
-    resultado = auditor._run_command("ss -tulpn")
+    _command_result_1 = auditor._run_command("ss -tulpn")
+    if auditor._record_command_error(_command_result_1, "Listening Network Services"):
+        return
+    resultado = _command_result_1.stdout
 
     if resultado.startswith("ERROR"):
         auditor.add_finding(

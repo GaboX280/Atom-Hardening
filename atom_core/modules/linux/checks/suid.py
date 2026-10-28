@@ -7,7 +7,10 @@ def audit_suid(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
 
     comando = "find / -xdev -perm -4000 -type f 2>/dev/null"
 
-    resultado = auditor._run_command(comando, timeout=30)
+    _command_result_1 = auditor._run_command(comando, timeout=30)
+    if auditor._record_command_error(_command_result_1, "SUID Binary Enumeration"):
+        return
+    resultado = _command_result_1.stdout
 
     if resultado.startswith("ERROR"):
         auditor.add_finding(

@@ -1,51 +1,59 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_powershell_policy(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-
+def audit_powershell_policy(auditor: BaseAuditor) -> None:
+    """Check the effective PowerShell execution policy."""
     auditor.log("Evaluando directiva de ejecución de PowerShell...")
 
-    comando = 'powershell -Command "Get-ExecutionPolicy"'
+    result = auditor._run_command(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            "[Console]::Out.Write((Get-ExecutionPolicy).ToString())",
+        ],
+        timeout=10,
+    )
+    if auditor._record_command_error(result, "Powershell Policy Check"):
+        return
 
-    resultado = auditor._run_command(comando).strip().upper()
-
-    if "BYPASS" in resultado or "UNRESTRICTED" in resultado:
+    policy = result.stdout.strip()
+    if not policy:
         auditor.add_finding(
             title="PowerShell Execution Policy",
-            status="FAIL",
+            status="ERROR",
             severity="HIGH",
-            category="System Hardening",
-            details=(f"Directiva insegura detectada: {resultado}"),
-            recommendation=(
-                "Configurar una política de ejecución más restrictiva "
-                "como RemoteSigned o AllSigned según los requerimientos "
-                "de seguridad."
-            ),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Una política permisiva permite ejecutar scripts no "
-                "confiables y puede facilitar la ejecución de código "
-                "malicioso mediante PowerShell."
-            ),
-            compliance=["CIS Controls v8 - Control 10", "NIST SP 800-53 CM-7"],
+            category="Execution Error",
+            details="PowerShell devolvió una respuesta vacía para la directiva de ejecución.",
+            recommendation="Verificar Get-ExecutionPolicy y repetir la auditoría.",
+            confidence="LOW",
         )
+        return
 
+    normalized = policy.upper()
+    if normalized in {"BYPASS", "UNRESTRICTED"}:
+        status, severity = "FAIL", "HIGH"
+        details = f"Directiva permisiva detectada: {policy}."
+        recommendation = "Evaluar una política más restrictiva según las necesidades del entorno."
+    elif normalized in {"RESTRICTED", "ALLSIGNED", "REMOTESIGNED", "DEFAULT", "UNDEFINED"}:
+        status, severity = "PASS", "INFO"
+        details = f"Directiva actual: {policy}."
+        recommendation = "Mantener políticas adecuadas y revisar periódicamente su configuración."
     else:
-        auditor.add_finding(
-            title="PowerShell Execution Policy",
-            status="PASS",
-            severity="INFO",
-            category="System Hardening",
-            details=(f"Directiva actual: {resultado}"),
-            recommendation=(
-                "Mantener políticas seguras de ejecución y revisar "
-                "periódicamente las configuraciones de PowerShell."
-            ),
-            reference=("Microsoft Security Baseline / CIS Windows Benchmark"),
-            impact=(
-                "Una política restrictiva ayuda a reducir la ejecución "
-                "de scripts no autorizados y limita técnicas de abuso "
-                "basadas en PowerShell."
-            ),
-            compliance=["CIS Controls v8 - Control 10", "NIST SP 800-53 CM-7"],
-        )
+        status, severity = "ERROR", "HIGH"
+        details = f"Directiva de ejecución desconocida: {policy}."
+        recommendation = "Verificar manualmente la directiva efectiva."
+
+    auditor.add_finding(
+        title="PowerShell Execution Policy",
+        status=status,
+        severity=severity,
+        category="System Hardening",
+        details=details,
+        recommendation=recommendation,
+        reference="Microsoft Security Baseline / CIS Windows Benchmark",
+        impact="Una política permisiva puede facilitar la ejecución de scripts no confiables.",
+        confidence="LOW" if status == "ERROR" else "HIGH",
+        compliance=["CIS Controls v8 - Control 10", "NIST SP 800-53 CM-7"],
+    )
