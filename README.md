@@ -114,6 +114,9 @@ python main.py --scan
 
 # También se puede usar el subcomando audit en modo no interactivo
 python main.py audit --audit 1 --no-gui
+
+# Modo silencioso: --quiet funciona antes o después del subcomando
+python main.py audit --audit 1 --no-gui --quiet
 ```
 
 ### Elegir el formato del reporte
@@ -160,6 +163,7 @@ python main.py config
 | `-q`, `--quiet` | Suprimir la presentación interactiva y el resumen de consola |
 | `-v`, `--version` | Mostrar la versión |
 | `audit --no-gui` | Ejecutar el flujo de auditoría sin el menú |
+| `audit --quiet` | Ejecutar el subcomando sin banner ni salida de consola |
 | `list` | Listar las opciones del menú |
 | `config` | Mostrar la configuración cargada |
 
