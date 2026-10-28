@@ -1,81 +1,109 @@
 from atom_core.base_auditor import BaseAuditor
 
 
-def audit_password_policy(auditor: BaseAuditor) -> None: # [TIPADO AÑADIDO]
-
+def audit_password_policy(auditor: BaseAuditor) -> None:
+    """Audit maximum password age in /etc/login.defs."""
     auditor.log("Evaluando política de expiración de contraseñas...")
 
-    _command_result_1 = auditor._run_command("grep PASS_MAX_DAYS /etc/login.defs")
+    result = auditor._run_command("grep PASS_MAX_DAYS /etc/login.defs")
     if auditor._record_command_error(
-        _command_result_1, "Password Expiration Policy", allowed_returncodes=(0, 1)
+        result, "Password Expiration Policy", allowed_returncodes=(0, 1)
     ):
         return
-    resultado = _command_result_1.stdout
 
-    if resultado.startswith("ERROR"):
-        auditor.add_finding(
-            title="Password Expiration Policy",
-            status="ERROR",
-            severity="MEDIUM",
-            category="Authentication Security",
-            details=(
-                "No fue posible consultar la política de expiración de contraseñas."
-            ),
-            recommendation=("Verificar permisos de lectura sobre /etc/login.defs."),
-            impact=(
-                "Una política débil de expiración puede "
-                "permitir el uso prolongado de credenciales "
-                "comprometidas."
-            ),
-            compliance=["CIS Linux Benchmark"],
-        )
+    max_age_days: int | None = None
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if "PASS_MAX_DAYS" not in line or line.startswith("#"):
+            continue
 
-        return
+        parts = line.split()
+        if len(parts) >= 2:
+            try:
+                max_age_days = int(parts[1])
+            except ValueError:
+                max_age_days = None
+        break
 
-    dias = None
-
-    for linea in resultado.splitlines():
-        linea = linea.strip()
-
-        if "PASS_MAX_DAYS" in linea and not linea.startswith("#"):
-            partes = linea.split()
-
-            if len(partes) >= 2:
-                try:
-                    dias = int(partes[1])
-
-                except ValueError:
-                    dias = None
-
-    if dias is not None and dias <= 90:
-        auditor.add_finding(
-            title="Password Expiration Policy",
-            status="PASS",
-            severity="INFO",
-            category="Authentication Security",
-            details=(f"Caducidad máxima configurada: {dias} días."),
-            recommendation=("Mantener una política segura de expiración."),
-            reference=("https://man7.org/linux/man-pages/man5/login.defs.5.html"),
-            impact=("Reduce la ventana de exposición de credenciales comprometidas."),
-            compliance=["CIS Linux Benchmark", "NIST SP 800-53 IA-5"],
-        )
-
-    else:
+    if max_age_days is None:
         auditor.add_finding(
             title="Password Expiration Policy",
             status="WARNING",
             severity="MEDIUM",
             category="Authentication Security",
-            details=(
-                f"Valor encontrado: {dias}. "
-                "La política supera los 90 días recomendados."
-            ),
-            recommendation=(
-                "Configurar PASS_MAX_DAYS a un valor menor o igual a 90 días."
-            ),
-            reference=("https://man7.org/linux/man-pages/man5/login.defs.5.html"),
-            impact=(
-                "Contraseñas con larga duración aumentan el riesgo ante filtraciones."
-            ),
+            details="No fue posible interpretar PASS_MAX_DAYS en /etc/login.defs.",
+            recommendation="Verificar manualmente la política de expiración y repetir la auditoría.",
+            reference="https://man7.org/linux/man-pages/man5/login.defs.5.html",
+            impact="No fue posible confirmar el límite de antigüedad de las contraseñas.",
+            confidence="LOW",
             compliance=["CIS Linux Benchmark"],
         )
+        return
+
+    policy = auditor.config.get("password_policy", {})
+    configured_max_age = (
+        policy.get("max_age_days", 90) if isinstance(policy, dict) else 90
+    )
+    if (
+        not isinstance(configured_max_age, int)
+        or isinstance(configured_max_age, bool)
+        or configured_max_age < 1
+    ):
+        configured_max_age = 90
+
+    if max_age_days < 1:
+        if max_age_days == -1:
+            detail = "PASS_MAX_DAYS está configurado en -1; la caducidad por antigüedad está deshabilitada."
+        else:
+            detail = (
+                f"PASS_MAX_DAYS está configurado en {max_age_days}; "
+                "el valor no representa un límite de antigüedad normal."
+            )
+
+        auditor.add_finding(
+            title="Password Expiration Policy",
+            status="WARNING",
+            severity="MEDIUM",
+            category="Authentication Security",
+            details=detail,
+            recommendation=(
+                f"Configurar PASS_MAX_DAYS con un valor entre 1 y "
+                f"{configured_max_age} días, según la política de la organización."
+            ),
+            reference="https://man7.org/linux/man-pages/man5/login.defs.5.html",
+            impact="La política actual no confirma un límite de antigüedad adecuado.",
+            compliance=["CIS Linux Benchmark"],
+        )
+        return
+
+    if max_age_days <= configured_max_age:
+        auditor.add_finding(
+            title="Password Expiration Policy",
+            status="PASS",
+            severity="INFO",
+            category="Authentication Security",
+            details=f"Caducidad máxima configurada: {max_age_days} días.",
+            recommendation="Mantener la política definida por la organización.",
+            reference="https://man7.org/linux/man-pages/man5/login.defs.5.html",
+            impact="La antigüedad máxima está dentro del umbral configurado.",
+            compliance=["CIS Linux Benchmark", "NIST SP 800-53 IA-5"],
+        )
+        return
+
+    auditor.add_finding(
+        title="Password Expiration Policy",
+        status="WARNING",
+        severity="MEDIUM",
+        category="Authentication Security",
+        details=(
+            f"Caducidad máxima encontrada: {max_age_days} días; "
+            f"el límite configurado es {configured_max_age} días."
+        ),
+        recommendation=(
+            f"Configurar PASS_MAX_DAYS a un valor menor o igual a "
+            f"{configured_max_age} días, según la política de la organización."
+        ),
+        reference="https://man7.org/linux/man-pages/man5/login.defs.5.html",
+        impact="Contraseñas con una antigüedad superior al umbral aumentan el riesgo de exposición prolongada.",
+        compliance=["CIS Linux Benchmark"],
+    )
