@@ -113,7 +113,7 @@ python main.py --version
 python main.py --scan
 
 # También se puede usar el subcomando audit en modo no interactivo
-python main.py audit --no-gui
+python main.py audit --audit 1 --no-gui
 ```
 
 ### Elegir el formato del reporte
