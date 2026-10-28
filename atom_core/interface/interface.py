@@ -1,7 +1,6 @@
-"""Terminal interface for Atom.""" 
+"""Terminal interface for Atom."""
 
 import logging
-import os
 import platform
 import sys
 
@@ -21,10 +20,6 @@ class AtomInterface:
     VERSION = "1.3.0"
     FONT = "slant"
     OPTIONS = ("System Hardening Audit", "Exit")
-    CYAN = "bright_cyan"
-    BLUE = "bright_blue"
-    WHITE = "white"
-    RED = "bright_red"
 
     def __init__(self) -> None:
         self.console = Console()
@@ -59,7 +54,10 @@ class AtomInterface:
                 logger.debug("Could not render Figlet banner: %s", exc)
 
         if not logo_text:
-            logo_text = "  _  _____ ___  __  __\\n / \\|_   _/ _ \\|  \\/  |\\n/ _ \\ | || | | | |\\/| |\\n/_/ \\_\\|_||_| |_|_|  |_|"
+            logo_text = """  _  _____ ___  __  __
+ / \\|_   _/ _ \\|  \\/  |
+/ _ \\ | || | | | |\\/| |
+/_/ \\_\\|_||_| |_|_|  |_|"""
 
         logo = Text(logo_text, style="bold bright_cyan", justify="center")
         subtitle = Text(
@@ -69,7 +67,7 @@ class AtomInterface:
         )
         content = Text()
         content.append_text(logo)
-        content.append("\\n")
+        content.append("\n")
         content.append_text(subtitle)
         self.console.print(
             Panel(
@@ -87,7 +85,9 @@ class AtomInterface:
         info.add_row("VERSION", self.VERSION)
         info.add_row("PLATFORM", platform.system() or "Unknown")
         info.add_row("MODE", "Security audit")
-        self.console.print(Panel(info, title="[bold bright_blue]SYSTEM[/]", border_style="blue"))
+        self.console.print(
+            Panel(info, title="[bold bright_blue]SYSTEM[/]", border_style="blue")
+        )
 
     def show_menu(self) -> None:
         self.clear_screen()
@@ -106,9 +106,7 @@ class AtomInterface:
         for index, option in enumerate(self.OPTIONS, start=1):
             menu.add_row(f"[{index}]", option)
         self.console.print(Panel(menu, border_style="bright_blue", padding=(1, 1)))
-        self.console.print(
-            Align.center("[dim]Select an option and press Enter[/dim]")
-        )
+        self.console.print(Align.center("[dim]Select an option and press Enter[/dim]"))
         self.console.print()
 
     def get_options(self) -> tuple[str, ...]:
@@ -119,5 +117,5 @@ class AtomInterface:
             self.console.print("[bold bright_cyan]atom>[/]", end=" ")
             return input().strip()
         except KeyboardInterrupt:
-            self.console.print("\\n[bold bright_red]Exiting ATOM...[/]")
+            self.console.print("\n[bold bright_red]Exiting ATOM...[/]")
             sys.exit(130)
