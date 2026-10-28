@@ -5,7 +5,7 @@ from collections import Counter
 from typing import ClassVar
 
 from rich.columns import Columns
-from rich.console import Console, Group
+from rich.console import Console, Group, RenderableType
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
@@ -76,7 +76,7 @@ class ConsoleReporter:
                 f"[{style}]{status_summary.get(status, 0)}[/]",
             )
 
-        left_items = []
+        left_items: list[RenderableType] = []
         if score is not None:
             score_style = (
                 "bright_green" if score >= 90
