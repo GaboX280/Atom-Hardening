@@ -18,8 +18,8 @@ class AtomInterface:
     """Presentation and input layer for the interactive CLI."""
 
     VERSION = "1.3.0"
-    FONT = "slant"
-    OPTIONS = ("System Hardening Audit", "Exit")
+    FONT = "smisome1"
+    OPTIONS = ("Run security audit", "View audit results", "Exit")
 
     def __init__(self) -> None:
         self.console = Console()
@@ -60,6 +60,22 @@ class AtomInterface:
 /_/ \\_\\|_||_| |_|_|  |_|"""
 
         logo = Text(logo_text, style="bold bright_cyan", justify="center")
+        atom_art = Text(
+            "\\n".join(
+                (
+                    "       .-----.",
+                    "    .-'  / \\  '-.",
+                    "  .'    /   \\    '.",
+                    " /-----<  *  >-----\\",
+                    " \\-----<     >-----/",
+                    "  '.    \\   /    .'",
+                    "    '-.  \\ /  .-'",
+                    "       '-----'",
+                )
+            ),
+            style="bright_blue",
+            justify="center",
+        )
         subtitle = Text(
             "AUTOMATED SECURITY HARDENING FRAMEWORK",
             style="bold bright_blue",
@@ -78,21 +94,27 @@ class AtomInterface:
             )
         )
 
-    def show_info(self) -> None:
+    def show_info(self, audit_available: bool = False) -> None:
         info = Table.grid(padding=(0, 2))
         info.add_column(style="bright_cyan", justify="right")
         info.add_column(style="white")
         info.add_row("VERSION", self.VERSION)
         info.add_row("PLATFORM", platform.system() or "Unknown")
         info.add_row("MODE", "Security audit")
+        info.add_row(
+            "AUDIT",
+            "[bright_green]Results available[/]"
+            if audit_available
+            else "[dim]Not run this session[/]",
+        )
         self.console.print(
             Panel(info, title="[bold bright_blue]SYSTEM[/]", border_style="blue")
         )
 
-    def show_menu(self) -> None:
+    def show_menu(self, audit_available: bool = False) -> None:
         self.clear_screen()
         self.show_banner()
-        self.show_info()
+        self.show_info(audit_available=audit_available)
 
         menu = Table(
             title="MAIN MENU",
