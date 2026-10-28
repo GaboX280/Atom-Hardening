@@ -42,28 +42,28 @@ def interactive_menu(interface: AtomInterface, runner: AuditRunner) -> None:
                 if 1 <= option_number <= len(options):
                     selected_option = options[option_number - 1]
                     if selected_option == "Exit":
-                        print("\n[+] Gracias por usar Atom.")
+                        interface.show_notice("Thanks for using ATOM.", kind="success")
                         break
 
                     if selected_option == "View audit results":
                         runner.show_last_results()
-                        input("\nPresiona Enter para regresar al menú...")
+                        interface.pause("Press Enter to return to the menu...")
                         continue
 
                     runner.run(option, show_results=False)
                     if runner.last_findings is not None:
-                        print(
-                            "\n[+] Auditoría completada. "
-                            "Selecciona 'View audit results' para consultar el informe."
+                        interface.show_notice(
+                            "Audit completed. Select 'View audit results' to inspect the report.",
+                            kind="success",
                         )
-                    input("\nPresiona Enter para regresar al menú...")
+                    interface.pause("Press Enter to return to the menu...")
                     continue
 
-            print("\n[!] Opción inválida.")
-            input("\nPresiona Enter para regresar...")
+            interface.show_notice("Invalid option. Choose 1, 2, or 3.", kind="warning")
+            interface.pause("Press Enter to continue...")
 
     except KeyboardInterrupt:
-        print("\n\n[+] Saliendo de Atom (Interrumpido).")
+        interface.show_notice("ATOM interrupted. Closing the console.", kind="warning")
 
 
 def build_parser() -> argparse.ArgumentParser:
