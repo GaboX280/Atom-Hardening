@@ -34,7 +34,7 @@ def interactive_menu(interface: AtomInterface, runner: AuditRunner) -> None:
     options = interface.get_options()
     try:
         while True:
-            interface.show_menu()
+            interface.show_menu(audit_available=runner.last_findings is not None)
             option = interface.get_choice()
 
             if option.isdigit():
