@@ -1,0 +1,74 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-exe:
+    name: Build and smoke-test AtomHardening.exe
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          architecture: "x64"
+
+      - name: Install runtime and build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Build one-file executable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean AtomHardening.spec
+          if (-not (Test-Path "dist/AtomHardening.exe")) {
+            throw "PyInstaller did not produce dist/AtomHardening.exe"
+          }
+          Get-Item "dist/AtomHardening.exe" | Select-Object FullName, Length
+
+      - name: Smoke-test executable
+        shell: pwsh
+        run: |
+          $version = & ".\dist\AtomHardening.exe" --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "AtomHardening.exe --version exited with code $LASTEXITCODE"
+          }
+          Write-Output $version
+          if (($version -join " ") -notmatch "ATOM v2\.0\.0") {
+            throw "Executable reported an unexpected version"
+          }
+
+          $options = & ".\dist\AtomHardening.exe" list
+          if ($LASTEXITCODE -ne 0) {
+            throw "AtomHardening.exe list exited with code $LASTEXITCODE"
+          }
+          $optionsText = $options -join "`n"
+          Write-Output $optionsText
+          if ($optionsText -notmatch "Run security audit" -or
+              $optionsText -notmatch "View audit results" -or
+              $optionsText -notmatch "Exit") {
+            throw "The executable did not return the expected interactive options"
+          }
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AtomHardening-Windows-x64
+          path: dist/AtomHardening.exe
+          if-no-files-found: error
+          retention-days: 30
