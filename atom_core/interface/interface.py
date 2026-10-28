@@ -1,9 +1,10 @@
 """Terminal interface for Atom."""
 
 import logging
-import math
 import platform
 import sys
+from collections import Counter
+from pathlib import Path
 
 from pyfiglet import Figlet  # type: ignore
 from rich import box
@@ -14,6 +15,17 @@ from rich.table import Table
 from rich.text import Text
 
 logger = logging.getLogger(__name__)
+
+ATOM_ART_PATH = Path(__file__).with_name("atom_art.txt")
+ART_SCALE = 3
+ART_PRIORITY = {"@": 5, "%": 4, "#": 3, "*": 2, "+": 1}
+ART_STYLES = {
+    "@": "bold bright_white",
+    "%": "bold bright_cyan",
+    "#": "bright_cyan",
+    "*": "bright_blue",
+    "+": "blue",
+}
 
 
 class AtomInterface:
@@ -42,103 +54,51 @@ class AtomInterface:
 
     @staticmethod
     def _build_atom_art() -> Text:
-        """Draw three intersecting electron orbits in terminal Braille cells."""
-        width, height = 46, 40
-        radius_x, radius_y = 21.5, 7.0
-        center_x, center_y = (width - 1) / 2, (height - 1) / 2
-        angles = (0.0, math.pi / 3, -math.pi / 3)
-        orbit_styles = ("bright_blue", "bright_cyan", "cyan")
-        pixels: list[list[set[int]]] = [
-            [set() for _ in range(width)] for _ in range(height)
-        ]
+        """Load the custom ASCII logo and scale it to fit a regular terminal."""
+        try:
+            lines = ATOM_ART_PATH.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            logger.warning("Could not load ATOM artwork: %s", exc)
+            lines = [
+                "          .-o-.",
+                "      .-' / | \\ '-.",
+                "   o----- ( @ ) -----o",
+                "      '-. \\ | / .-'",
+                "          '-o-'",
+            ]
 
-        # Each Braille character contains a 2-by-4 grid of dots. Sampling the
-        # ellipses at sub-character resolution produces smoother curves than
-        # hand-typed slashes and backslashes.
-        samples = 4000
-        for orbit_id, angle in enumerate(angles):
-            cos_angle = math.cos(angle)
-            sin_angle = math.sin(angle)
-            for sample in range(samples):
-                theta = math.tau * sample / samples
-                x = (
-                    radius_x * math.cos(theta) * cos_angle
-                    - radius_y * math.sin(theta) * sin_angle
-                )
-                y = (
-                    radius_x * math.cos(theta) * sin_angle
-                    + radius_y * math.sin(theta) * cos_angle
-                )
-                col = round(center_x + x)
-                row = round(center_y + y)
-                if 0 <= col < width and 0 <= row < height:
-                    pixels[row][col].add(orbit_id)
+        lines = [line for line in lines if line]
+        if not lines:
+            return Text("ATOM", style="bold bright_cyan", justify="center")
 
-        # Put one electron on each orbit, plus a brighter nucleus in the center.
-        electrons: dict[tuple[int, int], tuple[str, str]] = {}
-        electron_angles = (0.55, 2.6, 4.65)
-        for orbit_id, (angle, theta) in enumerate(
-            zip(angles, electron_angles, strict=True)
-        ):
-            x = (
-                radius_x * math.cos(theta) * math.cos(angle)
-                - radius_y * math.sin(theta) * math.sin(angle)
-            )
-            y = (
-                radius_x * math.cos(theta) * math.sin(angle)
-                + radius_y * math.sin(theta) * math.cos(angle)
-            )
-            char_position = (
-                round(center_x + x) // 2,
-                round(center_y + y) // 4,
-            )
-            electrons[char_position] = ("●", "bold white")
+        source_width = max(map(len, lines))
+        padded_lines = [line.ljust(source_width) for line in lines]
+        art = Text(justify="center", no_wrap=True, overflow="crop")
 
-        nucleus_position = (round(center_x) // 2, round(center_y) // 4)
-        electrons[nucleus_position] = ("●", "bold bright_cyan")
-
-        # Unicode Braille bit positions, indexed by (row, column).
-        braille_bits = {
-            (0, 0): 0,
-            (1, 0): 1,
-            (2, 0): 2,
-            (3, 0): 6,
-            (0, 1): 3,
-            (1, 1): 4,
-            (2, 1): 5,
-            (3, 1): 7,
-        }
-        art = Text(justify="center", no_wrap=True)
-        char_rows, char_cols = height // 4, width // 2
-
-        for char_row in range(char_rows):
-            for char_col in range(char_cols):
-                position = (char_col, char_row)
-                overlay = electrons.get(position)
-                if overlay is not None:
-                    character, style = overlay
-                    art.append(character, style=style)
+        for row_start in range(0, len(padded_lines), ART_SCALE):
+            for col_start in range(0, source_width, ART_SCALE):
+                sample = [
+                    padded_lines[row][col]
+                    for row in range(
+                        row_start, min(row_start + ART_SCALE, len(padded_lines))
+                    )
+                    for col in range(
+                        col_start, min(col_start + ART_SCALE, source_width)
+                    )
+                ]
+                shades = [character for character in sample if character != " "]
+                if not shades:
+                    art.append(" ")
                     continue
 
-                bits = 0
-                orbit_counts = [0, 0, 0]
-                for dot_row in range(4):
-                    for dot_col in range(2):
-                        active_orbits = pixels[char_row * 4 + dot_row][
-                            char_col * 2 + dot_col
-                        ]
-                        if active_orbits:
-                            bits |= 1 << braille_bits[(dot_row, dot_col)]
-                            for orbit_id in active_orbits:
-                                orbit_counts[orbit_id] += 1
+                counts = Counter(shades)
+                character = max(
+                    counts,
+                    key=lambda item: (counts[item], ART_PRIORITY.get(item, 0)),
+                )
+                art.append(character, style=ART_STYLES.get(character, "bright_cyan"))
 
-                if bits:
-                    dominant_orbit = max(range(3), key=orbit_counts.__getitem__)
-                    art.append(chr(0x2800 + bits), style=orbit_styles[dominant_orbit])
-                else:
-                    art.append(" ")
-
-            if char_row < char_rows - 1:
+            if row_start + ART_SCALE < len(padded_lines):
                 art.append("\n")
 
         return art
@@ -149,7 +109,7 @@ class AtomInterface:
             self.console.clear()
 
     def show_banner(self) -> None:
-        """Render the ATOM wordmark and a drawn atomic-orbit mark."""
+        """Render the custom atom drawing beside the ATOM wordmark."""
         logo_text: str | None = None
         if self.figlet is not None:
             try:
@@ -160,18 +120,19 @@ class AtomInterface:
         if not logo_text:
             logo_text = "A T O M"
 
-        header = Table.grid(expand=True, padding=(0, 0))
-        header.add_column(justify="center")
-        header.add_row(self.atom_art)
-        header.add_row(Text(logo_text, style="bold bright_cyan", justify="center"))
-        header.add_row(
+        brand = Table.grid(padding=(0, 0))
+        brand.add_column(justify="center")
+        brand.add_row(
+            Text(logo_text, style="bold bright_cyan", justify="center")
+        )
+        brand.add_row(
             Text(
                 "SECURITY POSTURE MONITOR",
                 style="bold bright_blue",
                 justify="center",
             )
         )
-        header.add_row(
+        brand.add_row(
             Text(
                 f"AUTOMATED SECURITY HARDENING FRAMEWORK  •  v{self.VERSION}",
                 style="dim",
@@ -179,13 +140,18 @@ class AtomInterface:
             )
         )
 
+        header = Table.grid(expand=True, padding=(0, 2))
+        header.add_column(ratio=1, justify="center")
+        header.add_column(ratio=2, justify="center")
+        header.add_row(self.atom_art, Align.center(brand, vertical="middle"))
+
         self.console.print(
             Panel(
                 header,
                 title="[bold bright_blue] ATOM / DEFENSE CONSOLE [/]",
                 border_style="bright_blue",
                 box=box.DOUBLE,
-                padding=(0, 2),
+                padding=(0, 1),
                 expand=True,
             )
         )
