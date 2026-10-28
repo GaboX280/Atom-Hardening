@@ -42,7 +42,7 @@ def audit_firewall(auditor: BaseAuditor) -> None:
 
         ruleset = result.stdout.strip()
         has_restrictive_rule = any(
-            re.search(r"\\b(drop|reject)\\b", line, re.IGNORECASE)
+            re.search(r"\b(drop|reject)\b", line, re.IGNORECASE)
             for line in ruleset.splitlines()
         )
         if has_restrictive_rule:
