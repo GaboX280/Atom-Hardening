@@ -10,7 +10,7 @@ Atom runs local security checks, normalizes findings, calculates a bounded Secur
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/GaboX280/Atom-Hardening/actions/workflows/ci.yml/badge.svg)](https://github.com/GaboX280/Atom-Hardening/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-2.0.0--candidate-blue)]()
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)]()
 
 </div>
 
@@ -28,7 +28,7 @@ Atom-Hardening is a modular defensive-security project. It evaluates selected lo
 - **Multi-format reporting:** TXT, JSON and HTML reports support human review and downstream automation.
 - **Expanded tests:** core logic, CLI behavior, Windows checks and Linux checks have automated coverage.
 
-> Version 2.0 is a release candidate until the full CI checks pass and the integrated behavior is verified.
+The automated CI pipeline has passed static typing (mypy), linting (Ruff), and the test suite. Individual findings still depend on the host operating system, available commands, configured policies, and execution permissions.
 
 ## Security checks
 
