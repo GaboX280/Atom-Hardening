@@ -74,8 +74,8 @@ def test_permissive_nftables_ruleset_is_not_a_pass(monkeypatch) -> None:
         monkeypatch,
         {
             "nft": (
-                "table inet filter {\\n"
-                " chain input { type filter hook input priority filter; policy accept; }\\n"
+                "table inet filter {\n"
+                " chain input { type filter hook input priority filter; policy accept; }\n"
                 "}"
             )
         },
@@ -94,8 +94,8 @@ def test_firewalld_is_checked_after_permissive_nftables(monkeypatch) -> None:
         monkeypatch,
         {
             "nft": (
-                "table inet filter {\\n"
-                " chain input { type filter hook input priority filter; policy accept; }\\n"
+                "table inet filter {\n"
+                " chain input { type filter hook input priority filter; policy accept; }\n"
                 "}"
             ),
             "firewall-cmd": "running",
