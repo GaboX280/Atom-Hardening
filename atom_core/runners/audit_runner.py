@@ -15,6 +15,7 @@ from rich.table import Table
 from atom_core.auditor_factory import AuditorFactory
 from atom_core.core.security_score import SecurityScore
 from atom_core.core.security_summary import SecuritySummary
+from atom_core.models.finding import Finding
 from atom_core.reporters.console_reporter import ConsoleReporter
 from atom_core.reporters.html_reporter import HTMLReporter
 from atom_core.reporters.json_reporter import JsonReporter
@@ -24,6 +25,25 @@ from atom_core.reporters.text_reporter import TextReporter
 class AuditRunner:
     """Coordinate audit execution and convert findings into reports."""
 
+    def __init__(self) -> None:
+        self.last_findings: list[Finding] | None = None
+        self.last_score: int | None = None
+        self.last_rating: str | None = None
+
+    def show_last_results(self) -> bool:
+        """Display the most recent audit results on demand."""
+        if self.last_findings is None:
+            Console().print(
+                "[yellow]No hay resultados todavía. Ejecuta primero una auditoría.[/]"
+            )
+            return False
+        ConsoleReporter.display(
+            self.last_findings,
+            self.last_score,
+            self.last_rating,
+        )
+        return True
+
     VALID_FORMATS: ClassVar[set[str]] = {"all", "json", "html", "text", "txt"}
 
     def run(
@@ -32,6 +52,7 @@ class AuditRunner:
         fmt: str = "all",
         output_dir: str | None = None,
         quiet: bool = False,
+        show_results: bool = True,
     ) -> dict[str, str] | None:
         """Run the selected audit and generate the requested report formats."""
         if option != "1":
@@ -42,6 +63,10 @@ class AuditRunner:
         target_fmt = fmt.lower()
         if target_fmt not in self.VALID_FORMATS:
             raise ValueError(f"Formato de reporte no soportado: {fmt}")
+
+        self.last_findings = None
+        self.last_score = None
+        self.last_rating = None
 
         auditor = AuditorFactory.get_auditor()
         console = Console()
@@ -64,12 +89,15 @@ class AuditRunner:
         summary = SecuritySummary.summarize(findings)
         summary["score"] = SecurityScore.calculate(findings)
         summary["rating"] = SecurityScore.rating(summary["score"])
+        self.last_findings = findings
+        self.last_score = summary["score"]
+        self.last_rating = summary["rating"]
         summary["system"] = auditor.os_type
         summary["module"] = auditor.__class__.__name__
         if getattr(auditor, "distro", None):
             summary["distribution"] = auditor.distro
 
-        if not quiet:
+        if not quiet and show_results:
             ConsoleReporter.display(findings, summary["score"], summary["rating"])
 
         report_jobs = []
