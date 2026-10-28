@@ -1,4 +1,4 @@
-"Punto de entrada de ATOM (CLI e interfaz interactiva)."
+"""Punto de entrada de ATOM (CLI e interfaz interactiva)."""
 
 import argparse
 import json
