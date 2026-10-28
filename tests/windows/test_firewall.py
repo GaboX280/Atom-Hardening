@@ -71,6 +71,24 @@ def test_firewall_passes_when_all_profiles_are_on(auditor: Mock) -> None:
     assert finding["confidence"] == "HIGH"
 
 
+def test_firewall_passes_when_all_profiles_are_enabled_in_spanish(auditor: Mock) -> None:
+    run_check(
+        auditor,
+        """
+        Perfil de dominio Configuración:
+            Estado ACTIVAR
+        Perfil privado Configuración:
+            Estado ACTIVAR
+        Perfil público Configuración:
+            Estado ACTIVAR
+        """,
+    )
+
+    finding = auditor.add_finding.call_args.kwargs
+    assert finding["status"] == "PASS"
+    assert finding["confidence"] == "HIGH"
+
+
 def test_firewall_fails_when_any_profile_is_off(auditor: Mock) -> None:
     run_check(
         auditor,
@@ -81,6 +99,24 @@ def test_firewall_fails_when_any_profile_is_off(auditor: Mock) -> None:
             State OFF
         Public Profile Settings:
             State ON
+        """,
+    )
+
+    finding = auditor.add_finding.call_args.kwargs
+    assert finding["status"] == "FAIL"
+    assert finding["severity"] == "HIGH"
+
+
+def test_firewall_fails_when_a_profile_is_disabled_in_spanish(auditor: Mock) -> None:
+    run_check(
+        auditor,
+        """
+        Perfil de dominio Configuración:
+            Estado ACTIVAR
+        Perfil privado Configuración:
+            Estado DESACTIVAR
+        Perfil público Configuración:
+            Estado ACTIVAR
         """,
     )
 
