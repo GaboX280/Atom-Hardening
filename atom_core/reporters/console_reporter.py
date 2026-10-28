@@ -1,12 +1,12 @@
 """Rich-powered terminal report for Atom security audits."""
 
 from collections import Counter
+import re
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
-from rich.progress_bar import ProgressBar
 from rich.table import Table
-from rich.text import Text
 
 
 class ConsoleReporter:
@@ -60,17 +60,23 @@ class ConsoleReporter:
                 else "bright_red" if score < 50
                 else "bright_blue"
             )
+            filled = max(1, min(20, score // 5))
             score_table = Table.grid(expand=True, padding=(0, 1))
             score_table.add_column(ratio=1)
             score_table.add_column(justify="right")
             score_table.add_row(
                 f"[bold]Security score[/]  [{score_style}]{score}/100[/]",
-                f"[{score_style}]{'━' * max(1, min(20, score // 5))}{'─' * (20 - max(1, min(20, score // 5)))}[/]",
+                f"[{score_style}]{'━' * filled}{'─' * (20 - filled)}[/]",
             )
             if rating:
-                score_table.add_row("[dim]Rating[/]", str(rating))
+                clean_rating = re.sub(r"\x1b\[[0-9;]*m", "", str(rating))
+                score_table.add_row("[dim]Rating[/]", escape(clean_rating))
             console.print(
-                Panel(score_table, title="[bold bright_blue]POSTURE[/]", border_style="blue")
+                Panel(
+                    score_table,
+                    title="[bold bright_blue]POSTURE[/]",
+                    border_style="blue",
+                )
             )
 
         summary = Table(
@@ -88,7 +94,10 @@ class ConsoleReporter:
             ("FAIL", "bright_red"),
             ("ERROR", "bright_red"),
         ):
-            summary.add_row(f"[{style}]{status}[/]", f"[{style}]{status_summary.get(status, 0)}[/]")
+            summary.add_row(
+                f"[{style}]{status}[/]",
+                f"[{style}]{status_summary.get(status, 0)}[/]",
+            )
         console.print(summary)
 
         severity = Table(
@@ -100,7 +109,9 @@ class ConsoleReporter:
         severity.add_column("Count", justify="right")
         for level in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
             style = ConsoleReporter.SEVERITY_STYLES[level]
-            severity.add_row(f"[{style}]{level}[/]", str(severity_summary.get(level, 0)))
+            severity.add_row(
+                f"[{style}]{level}[/]", str(severity_summary.get(level, 0))
+            )
         console.print(severity)
 
         details = Table(
@@ -126,12 +137,12 @@ class ConsoleReporter:
                 finding.severity.upper(), "white"
             )
             details.add_row(
-                f"[{status_style}]{status_label}[/]",
-                f"[{severity_style}]{finding.severity}[/]",
-                f"[bold]{finding.title}[/]\n[dim]{finding.finding_id}[/]",
-                finding.category or "General",
-                finding.details or "—",
-                finding.recommendation or "—",
+                f"[{status_style}]{escape(status_label)}[/]",
+                f"[{severity_style}]{escape(finding.severity)}[/]",
+                f"[bold]{escape(finding.title)}[/]\n[dim]{escape(finding.finding_id)}[/]",
+                escape(finding.category or "General"),
+                escape(finding.details or "—"),
+                escape(finding.recommendation or "—"),
             )
         console.print(details)
         console.print(
