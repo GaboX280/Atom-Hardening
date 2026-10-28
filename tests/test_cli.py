@@ -41,6 +41,9 @@ def test_cli_parser_subcommands() -> None:
     assert args_audit.no_gui
     assert args_audit.audit == "1"
 
+    args_quiet = parser.parse_args(["audit", "--no-gui", "--quiet"])
+    assert args_quiet.quiet
+
 
 def test_cli_rejects_unsupported_audit_id() -> None:
     """Rechaza IDs de auditoría que aún no están implementados."""
