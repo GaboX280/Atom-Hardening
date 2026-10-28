@@ -3,6 +3,8 @@
 from typing import ClassVar
 
 from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+from rich.table import Table
 
 from atom_core.auditor_factory import AuditorFactory
 from atom_core.core.security_score import SecurityScore
@@ -50,9 +52,7 @@ class AuditRunner:
 
         if not findings:
             if not quiet:
-                console.print(
-                    "[bold yellow][!] El auditor no devolvió resultados.[/]"
-                )
+                console.print("[bold yellow][!] El auditor no devolvió resultados.[/]")
             return None
 
         summary = SecuritySummary.summarize(findings)
@@ -64,25 +64,39 @@ class AuditRunner:
             summary["distribution"] = auditor.distro
 
         if not quiet:
-            ConsoleReporter.display(
-                findings,
-                summary["score"],
-                summary["rating"],
+            ConsoleReporter.display(findings, summary["score"], summary["rating"])
+
+        report_jobs = []
+        if target_fmt in {"all", "text", "txt"}:
+            report_jobs.append(
+                ("text", lambda: TextReporter.save(summary, findings, output_dir=output_dir))
+            )
+        if target_fmt in {"all", "json"}:
+            report_jobs.append(
+                ("json", lambda: JsonReporter.save(summary, findings, output_dir=output_dir))
+            )
+        if target_fmt in {"all", "html"}:
+            report_jobs.append(
+                ("html", lambda: HTMLReporter.save(summary, findings, output_dir=output_dir))
             )
 
         reports: dict[str, str] = {}
-        if target_fmt in {"all", "text", "txt"}:
-            reports["text"] = TextReporter.save(
-                summary, findings, output_dir=output_dir
-            )
-        if target_fmt in {"all", "json"}:
-            reports["json"] = JsonReporter.save(
-                summary, findings, output_dir=output_dir
-            )
-        if target_fmt in {"all", "html"}:
-            reports["html"] = HTMLReporter.save(
-                summary, findings, output_dir=output_dir
-            )
+        if quiet:
+            for report_type, save_report in report_jobs:
+                reports[report_type] = save_report()
+        elif report_jobs:
+            with Progress(
+                SpinnerColumn(style="bright_blue"),
+                TextColumn("[bold bright_cyan]{task.description}"),
+                BarColumn(bar_width=24, complete_style="bright_blue"),
+                TaskProgressColumn(),
+                console=console,
+                transient=True,
+            ) as progress:
+                task_id = progress.add_task("Generando reportes", total=len(report_jobs))
+                for report_type, save_report in report_jobs:
+                    reports[report_type] = save_report()
+                    progress.advance(task_id)
 
         if not quiet and reports:
             report_table = Table(
