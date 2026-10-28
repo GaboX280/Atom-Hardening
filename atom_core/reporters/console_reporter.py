@@ -1,7 +1,8 @@
 """Rich-powered terminal report for Atom security audits."""
 
-from collections import Counter
 import re
+from collections import Counter
+from typing import ClassVar
 
 from rich.console import Console
 from rich.markup import escape
@@ -12,13 +13,13 @@ from rich.table import Table
 class ConsoleReporter:
     """Render audit summaries and findings in a readable terminal layout."""
 
-    STATUS_STYLES = {
+    STATUS_STYLES: ClassVar[dict[str, tuple[str, str]]] = {
         "PASS": ("bright_green", "PASS"),
         "WARNING": ("yellow", "WARN"),
         "FAIL": ("bright_red", "FAIL"),
         "ERROR": ("bright_red", "ERROR"),
     }
-    SEVERITY_STYLES = {
+    SEVERITY_STYLES: ClassVar[dict[str, str]] = {
         "CRITICAL": "bold bright_red",
         "HIGH": "bright_red",
         "MEDIUM": "yellow",
