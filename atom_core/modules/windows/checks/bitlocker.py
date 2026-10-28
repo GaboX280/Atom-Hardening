@@ -53,6 +53,20 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
         )
     )
 
+    if fully_decrypted:
+        auditor.add_finding(
+            title="BitLocker",
+            status="FAIL",
+            severity="HIGH",
+            category="Data Protection",
+            details="La unidad C: no está cifrada con BitLocker.",
+            recommendation="Antes de habilitar BitLocker, confirmar compatibilidad y guardar de forma segura una copia de la clave de recuperación; después, cifrar la unidad del sistema.",
+            reference="Microsoft Security Baseline / CIS Windows Benchmark",
+            impact="Los datos quedan más expuestos ante pérdida, robo o acceso físico no autorizado.",
+            compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
+        )
+        return
+
     if fully_encrypted and protection_enabled:
         auditor.add_finding(
             title="BitLocker",
@@ -78,20 +92,6 @@ def audit_bitlocker(auditor: BaseAuditor) -> None:
             reference="Microsoft Security Baseline / CIS Windows Benchmark",
             impact="Una unidad cifrada con la protección suspendida puede ofrecer menor protección frente a acceso físico.",
             confidence="MEDIUM",
-            compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
-        )
-        return
-
-    if fully_decrypted:
-        auditor.add_finding(
-            title="BitLocker",
-            status="FAIL",
-            severity="HIGH",
-            category="Data Protection",
-            details="La unidad C: no está cifrada con BitLocker.",
-            recommendation="Antes de habilitar BitLocker, confirmar compatibilidad y guardar de forma segura una copia de la clave de recuperación; después, cifrar la unidad del sistema.",
-            reference="Microsoft Security Baseline / CIS Windows Benchmark",
-            impact="Los datos quedan más expuestos ante pérdida, robo o acceso físico no autorizado.",
             compliance=["CIS Controls v8 - Control 3", "NIST SP 800-53 SC-28"],
         )
         return
