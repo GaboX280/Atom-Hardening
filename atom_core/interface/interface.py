@@ -3,7 +3,6 @@
 import logging
 import platform
 import sys
-from collections import Counter
 from pathlib import Path
 
 from pyfiglet import Figlet  # type: ignore
@@ -17,8 +16,6 @@ from rich.text import Text
 logger = logging.getLogger(__name__)
 
 ATOM_ART_PATH = Path(__file__).with_name("atom_art.txt")
-ART_SCALE = 3
-ART_PRIORITY = {"@": 5, "%": 4, "#": 3, "*": 2, "+": 1}
 ART_STYLES = {
     "@": "bold bright_white",
     "%": "bold bright_cyan",
@@ -54,7 +51,7 @@ class AtomInterface:
 
     @staticmethod
     def _build_atom_art() -> Text:
-        """Load the custom ASCII logo and scale it to fit a regular terminal."""
+        """Read the original ASCII artwork without resizing or changing spacing."""
         try:
             lines = ATOM_ART_PATH.read_text(encoding="utf-8").splitlines()
         except OSError as exc:
@@ -67,40 +64,12 @@ class AtomInterface:
                 "          '-o-'",
             ]
 
-        lines = [line for line in lines if line]
-        if not lines:
-            return Text("ATOM", style="bold bright_cyan", justify="center")
-
-        source_width = max(map(len, lines))
-        padded_lines = [line.ljust(source_width) for line in lines]
-        art = Text(justify="center", no_wrap=True, overflow="crop")
-
-        for row_start in range(0, len(padded_lines), ART_SCALE):
-            for col_start in range(0, source_width, ART_SCALE):
-                sample = [
-                    padded_lines[row][col]
-                    for row in range(
-                        row_start, min(row_start + ART_SCALE, len(padded_lines))
-                    )
-                    for col in range(
-                        col_start, min(col_start + ART_SCALE, source_width)
-                    )
-                ]
-                shades = [character for character in sample if character != " "]
-                if not shades:
-                    art.append(" ")
-                    continue
-
-                counts = Counter(shades)
-                character = max(
-                    counts,
-                    key=lambda item: (counts[item], ART_PRIORITY.get(item, 0)),
-                )
-                art.append(character, style=ART_STYLES.get(character, "bright_cyan"))
-
-            if row_start + ART_SCALE < len(padded_lines):
+        art = Text(no_wrap=True, overflow="ignore", end="")
+        for line_index, line in enumerate(lines):
+            for character in line:
+                art.append(character, style=ART_STYLES.get(character, "default"))
+            if line_index < len(lines) - 1:
                 art.append("\n")
-
         return art
 
     def clear_screen(self) -> None:
@@ -140,10 +109,10 @@ class AtomInterface:
             )
         )
 
-        header = Table.grid(expand=True, padding=(0, 2))
-        header.add_column(ratio=1, justify="center")
-        header.add_column(ratio=2, justify="center")
-        header.add_row(self.atom_art, Align.center(brand, vertical="middle"))
+        header = Table.grid(expand=True, padding=(0, 1))
+        header.add_column(justify="center")
+        header.add_row(Align.center(self.atom_art))
+        header.add_row(Align.center(brand, vertical="middle"))
 
         self.console.print(
             Panel(
