@@ -69,3 +69,50 @@ def test_runner_rejects_unknown_report_format() -> None:
         with pytest.raises(ValueError, match="Formato de reporte no soportado"):
             AuditRunner().run(fmt="xml")
         factory.assert_not_called()
+
+
+
+def test_runner_can_defer_results_until_requested() -> None:
+    runner = AuditRunner()
+    with (
+        patch(
+            "atom_core.runners.audit_runner.AuditorFactory.get_auditor",
+            return_value=StubAuditor(),
+        ),
+        patch(
+            "atom_core.runners.audit_runner.ConsoleReporter.display"
+        ) as console_display,
+        patch(
+            "atom_core.runners.audit_runner.JsonReporter.save",
+            return_value="report.json",
+        ),
+        patch(
+            "atom_core.runners.audit_runner.HTMLReporter.save",
+            return_value="report.html",
+        ),
+        patch(
+            "atom_core.runners.audit_runner.TextReporter.save",
+            return_value="report.txt",
+        ),
+    ):
+        runner.run(fmt="json", quiet=False, show_results=False)
+
+        console_display.assert_not_called()
+        assert runner.last_findings is not None
+        assert len(runner.last_findings) == 2
+        assert runner.last_score == 80
+        assert runner.last_rating is not None
+
+        assert runner.show_last_results()
+        console_display.assert_called_once_with(
+            runner.last_findings,
+            runner.last_score,
+            runner.last_rating,
+        )
+
+
+def test_runner_reports_when_results_are_requested_before_audit() -> None:
+    runner = AuditRunner()
+    with patch("atom_core.runners.audit_runner.Console.print") as console_print:
+        assert not runner.show_last_results()
+        console_print.assert_called_once()
