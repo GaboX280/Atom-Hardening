@@ -90,29 +90,22 @@ class AtomInterface:
             logo_text = "A T O M"
 
         brand = Table.grid(padding=(0, 0))
-        brand.add_column(justify="center")
-        brand.add_row(
-            Text(logo_text, style="bold bright_cyan", justify="center")
-        )
-        brand.add_row(
-            Text(
-                "SECURITY POSTURE MONITOR",
-                style="bold bright_blue",
-                justify="center",
-            )
-        )
+        brand.add_column(justify="left")
+        brand.add_row(Text(logo_text, style="bold bright_cyan"))
+        brand.add_row(Text("SECURITY POSTURE MONITOR", style="bold bright_blue"))
         brand.add_row(
             Text(
                 f"AUTOMATED SECURITY HARDENING FRAMEWORK  •  v{self.VERSION}",
                 style="dim",
-                justify="center",
             )
         )
 
-        header = Table.grid(expand=True, padding=(0, 1))
-        header.add_column(justify="center")
-        header.add_row(Align.center(self.atom_art))
-        header.add_row(Align.center(brand, vertical="middle"))
+        # Keep the original artwork left-aligned and at its exact character size.
+        # Place the wordmark beside it instead of centering both over a wide panel.
+        header = Table.grid(padding=(0, 2))
+        header.add_column(no_wrap=True, justify="left")
+        header.add_column(ratio=1, justify="left")
+        header.add_row(self.atom_art, Align.center(brand, vertical="middle"))
 
         self.console.print(
             Panel(
@@ -121,7 +114,7 @@ class AtomInterface:
                 border_style="bright_blue",
                 box=box.DOUBLE,
                 padding=(0, 1),
-                expand=True,
+                expand=False,
             )
         )
 
@@ -135,10 +128,10 @@ class AtomInterface:
 
     def show_info(self, audit_available: bool = False) -> None:
         """Show runtime details in a compact three-column status strip."""
-        info = Table.grid(expand=True, padding=(0, 2))
-        info.add_column(ratio=1, justify="center")
-        info.add_column(ratio=1, justify="center")
-        info.add_column(ratio=1, justify="center")
+        info = Table.grid(padding=(0, 2))
+        info.add_column(justify="left")
+        info.add_column(justify="left")
+        info.add_column(justify="left")
 
         audit_state = "Results available" if audit_available else "Not run this session"
         audit_style = "bold bright_green" if audit_available else "yellow"
@@ -155,7 +148,7 @@ class AtomInterface:
                 border_style="blue",
                 box=box.ROUNDED,
                 padding=(0, 1),
-                expand=True,
+                expand=False,
             )
         )
 
@@ -170,21 +163,16 @@ class AtomInterface:
             show_header=False,
             show_edge=False,
             show_lines=False,
-            padding=(1, 1),
-            expand=True,
+            padding=(0, 1),
+            expand=False,
         )
-        menu.add_column("ID", width=5, justify="center", no_wrap=True)
+        menu.add_column("ID", width=4, justify="center", no_wrap=True)
         menu.add_column("ACTION", min_width=22, no_wrap=True)
-        menu.add_column("DESCRIPTION", ratio=1)
 
-        for index, (option, detail) in enumerate(
-            zip(self.OPTIONS, self.OPTION_DETAILS, strict=True),
-            start=1,
-        ):
+        for index, option in enumerate(self.OPTIONS, start=1):
             number = Text(f"{index:02}", style="bold bright_cyan")
             title = Text(option, style="bold white")
-            description = Text(detail, style="dim")
-            menu.add_row(number, title, description)
+            menu.add_row(number, title)
 
         self.console.print(
             Panel(
@@ -194,13 +182,11 @@ class AtomInterface:
                 border_style="bright_blue",
                 box=box.ROUNDED,
                 padding=(0, 1),
-                expand=True,
+                expand=False,
             )
         )
         self.console.print(
-            Align.center(
-                Text("Enter 1, 2, or 3 to continue  •  Ctrl+C to quit", style="dim")
-            )
+            Text("Enter 1, 2, or 3 to continue  •  Ctrl+C to quit", style="dim")
         )
         self.console.print()
 
