@@ -110,6 +110,13 @@ def build_parser() -> argparse.ArgumentParser:
     audit_parser.add_argument(
         "--no-gui", action="store_true", help="Desactivar la UI interactiva"
     )
+    audit_parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Suprimir banner y salida de consola (también disponible después de 'audit')",
+    )
 
     subparsers.add_parser("list", help="Listar opciones de auditoría disponibles")
     subparsers.add_parser("config", help="Mostrar la configuración actual (config.json)")
