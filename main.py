@@ -45,8 +45,18 @@ def interactive_menu(interface: AtomInterface, runner: AuditRunner) -> None:
                         print("\n[+] Gracias por usar Atom.")
                         break
 
-                    runner.run(option)
-                    input("\nPresiona Enter para regresar...")
+                    if selected_option == "View audit results":
+                        runner.show_last_results()
+                        input("\nPresiona Enter para regresar al menú...")
+                        continue
+
+                    runner.run(option, show_results=False)
+                    if runner.last_findings is not None:
+                        print(
+                            "\n[+] Auditoría completada. "
+                            "Selecciona 'View audit results' para consultar el informe."
+                        )
+                    input("\nPresiona Enter para regresar al menú...")
                     continue
 
             print("\n[!] Opción inválida.")
