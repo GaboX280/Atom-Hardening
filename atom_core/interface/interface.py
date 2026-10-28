@@ -77,7 +77,9 @@ class AtomInterface:
         # Put one electron on each orbit, plus a brighter nucleus in the center.
         electrons: dict[tuple[int, int], tuple[str, str]] = {}
         electron_angles = (0.55, 2.6, 4.65)
-        for orbit_id, (angle, theta) in enumerate(zip(angles, electron_angles, strict=True)):
+        for orbit_id, (angle, theta) in enumerate(
+            zip(angles, electron_angles, strict=True)
+        ):
             x = (
                 radius_x * math.cos(theta) * math.cos(angle)
                 - radius_y * math.sin(theta) * math.sin(angle)
