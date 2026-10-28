@@ -142,7 +142,12 @@ class ConsoleReporter:
 
         # Rich Columns wraps panels when the terminal is too narrow.
         console.print(
-            Columns([left_panel, right_panel], equal=True, expand=True, padding=(0, 1))
+            Columns(
+                [left_panel, right_panel],
+                equal=True,
+                expand=True,
+                padding=(0, 1),
+            )
         )
 
         console.print()
