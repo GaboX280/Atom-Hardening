@@ -42,7 +42,7 @@ class SecurityScore:
     def rating(score: int) -> str:
         """Devuelve la clasificación en español sin códigos ANSI."""
         if not 0 <= score <= 100:
-            raise ValueError("score debe estar entre 0 y 100")
+            raise ValueError("score must be between 0 and 100")
 
         if score >= 90:
             return "EXCELENTE (90-100)"
