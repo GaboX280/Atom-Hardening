@@ -4,7 +4,8 @@ import re
 from collections import Counter
 from typing import ClassVar
 
-from rich.console import Console
+from rich.columns import Columns
+from rich.console import Console, Group
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
@@ -30,7 +31,7 @@ class ConsoleReporter:
 
     @staticmethod
     def display(findings, score=None, rating=None) -> None:
-        """Display a score panel, summary tables, and detailed findings."""
+        """Display colored overview panels side by side and detailed findings below."""
         console = Console()
         if not findings:
             console.print(
@@ -45,7 +46,6 @@ class ConsoleReporter:
         status_summary = Counter(finding.status.upper() for finding in findings)
         severity_summary = Counter(finding.severity.upper() for finding in findings)
 
-        console.print()
         console.print(
             Panel(
                 "[bold bright_cyan]ATOM SECURITY REPORT[/]\n"
@@ -55,6 +55,28 @@ class ConsoleReporter:
             )
         )
 
+        summary = Table(
+            title="AUDIT SUMMARY",
+            header_style="bold bright_cyan",
+            border_style="blue",
+            show_lines=False,
+            expand=True,
+        )
+        summary.add_column("Metric", style="white", ratio=1)
+        summary.add_column("Count", justify="right", style="bold")
+        summary.add_row("Total checks", str(len(findings)))
+        for status, style in (
+            ("PASS", "bright_green"),
+            ("WARNING", "yellow"),
+            ("FAIL", "bright_red"),
+            ("ERROR", "bright_red"),
+        ):
+            summary.add_row(
+                f"[{style}]{status}[/]",
+                f"[{style}]{status_summary.get(status, 0)}[/]",
+            )
+
+        left_items = []
         if score is not None:
             score_style = (
                 "bright_green" if score >= 90
@@ -73,49 +95,37 @@ class ConsoleReporter:
             if rating:
                 clean_rating = re.sub(r"\x1b\[[0-9;]*m", "", str(rating))
                 score_table.add_row("[dim]Rating[/]", escape(clean_rating))
-            console.print(
+            left_items.append(
                 Panel(
                     score_table,
                     title="[bold bright_blue]POSTURE[/]",
-                    border_style="blue",
+                    border_style=score_style,
+                    padding=(0, 1),
                 )
             )
-
-        summary = Table(
-            title="AUDIT SUMMARY",
-            header_style="bold bright_cyan",
+        left_items.append(summary)
+        left_panel = Panel(
+            Group(*left_items),
+            title="[bold bright_cyan]OVERVIEW[/]",
             border_style="blue",
-            show_lines=False,
+            padding=(0, 1),
         )
-        summary.add_column("Metric", style="white")
-        summary.add_column("Count", justify="right", style="bold")
-        summary.add_row("Total checks", str(len(findings)))
-        for status, style in (
-            ("PASS", "bright_green"),
-            ("WARNING", "yellow"),
-            ("FAIL", "bright_red"),
-            ("ERROR", "bright_red"),
-        ):
-            summary.add_row(
-                f"[{style}]{status}[/]",
-                f"[{style}]{status_summary.get(status, 0)}[/]",
-            )
-        console.print(summary)
 
         severity = Table(
             title="SEVERITY DISTRIBUTION",
             header_style="bold bright_cyan",
             border_style="blue",
+            expand=True,
         )
-        severity.add_column("Severity")
+        severity.add_column("Severity", ratio=1)
         severity.add_column("Count", justify="right")
-        severity.add_column("Distribution", min_width=16)
+        severity.add_column("Distribution", min_width=8, ratio=1)
         max_severity_count = max(severity_summary.values(), default=0)
         for level in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
             style = ConsoleReporter.SEVERITY_STYLES[level]
             count = severity_summary.get(level, 0)
             bar_length = (
-                round(count / max_severity_count * 16) if max_severity_count else 0
+                round(count / max_severity_count * 12) if max_severity_count else 0
             )
             bar = "█" * bar_length
             severity.add_row(
@@ -123,7 +133,17 @@ class ConsoleReporter:
                 str(count),
                 f"[{style}]{bar}[/]",
             )
-        console.print(severity)
+        right_panel = Panel(
+            severity,
+            title="[bold bright_cyan]RISK BREAKDOWN[/]",
+            border_style="bright_blue",
+            padding=(0, 1),
+        )
+
+        # Rich Columns wraps panels when the terminal is too narrow.
+        console.print(
+            Columns([left_panel, right_panel], equal=True, expand=True, padding=(0, 1))
+        )
 
         console.print()
         console.rule("[bold bright_cyan]SECURITY FINDINGS[/]", style="bright_blue")
