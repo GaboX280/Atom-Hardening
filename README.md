@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚛ Atom-Hardening
+# Atom-Hardening
 
 **Automated security auditing and configuration assessment for Windows and Linux.**
 
